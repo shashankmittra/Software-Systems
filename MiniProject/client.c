@@ -7,13 +7,136 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
+char buffer[1024];
 
+//Student structure
+typedef struct {
+    char login_id[50];
+    char password[50];
+    char name[20];
+    int age;
+    char email_id[30];
+    char address[100];
+    int stud_id;
+} Student;
+
+typedef struct {
+    char login_id[50];
+    char password[50];
+    char name[20];
+    char department[20];
+    char designation[20];
+    char email_id[30];
+    char address[100];
+    int faculty_id;
+} Faculty;
+
+
+void addStudent(int clientSocket){
+    Student newStudent;
+    memset(&newStudent, 0, sizeof(Student)); // Initialize the structure
+    printf("Enter student name: ");
+    fgets(newStudent.name, sizeof(newStudent.name), stdin);
+    printf("Enter student age: ");
+    scanf("%d", &newStudent.age);
+    getchar(); // Consume newline character
+    printf("Enter student email_id: ");
+    fgets(newStudent.email_id, sizeof(newStudent.email_id), stdin);
+    printf("Enter student address: ");
+    fgets(newStudent.address, sizeof(newStudent.address), stdin);
+
+    // Format the student data as space-separated values
+    char formattedData[256];
+    snprintf(formattedData, sizeof(formattedData), "%s %d %s %s\n",
+            newStudent.name,
+            newStudent.age,
+            newStudent.email_id,
+            newStudent.address);
+
+    // Send the formatted data to the server
+    send(clientSocket, formattedData, sizeof(formattedData), 0);
+
+
+    // Receive and display the server's response
+    memset(buffer, 0, sizeof(buffer));
+    recv(clientSocket, buffer, sizeof(buffer), 0);
+    printf("Server response: %s\n", buffer);
+}
+
+void addFaculty(int clientSocket){
+    Faculty newFaculty;
+    memset(&newFaculty, 0, sizeof(Faculty)); // Initialize the structure
+    printf("Enter Faculty name: ");
+    fgets(newFaculty.name, sizeof(newFaculty.name), stdin);
+    printf("Enter Faculty Department: ");
+    fgets(newFaculty.department, sizeof(newFaculty.department), stdin);
+    printf("Enter Faculty Designation: ");
+    fgets(newFaculty.designation, sizeof(newFaculty.designation), stdin);
+    printf("Enter faculty email_id: ");
+    fgets(newFaculty.email_id, sizeof(newFaculty.email_id), stdin);
+    printf("Enter faculty address: ");
+    fgets(newFaculty.address, sizeof(newFaculty.address), stdin);
+
+    // Format the student data as space-separated values
+    char formattedData[256];
+    snprintf(formattedData, sizeof(formattedData), "%s %s %s %s %s\n",
+            newFaculty.name,
+            newFaculty.department,
+            newFaculty.designation,
+            newFaculty.email_id,
+            newFaculty.address);
+
+    // Send the formatted data to the server
+    send(clientSocket, formattedData, sizeof(formattedData), 0);
+
+
+    // Receive and display the server's response
+    memset(buffer, 0, sizeof(buffer));
+    recv(clientSocket, buffer, sizeof(buffer), 0);
+    printf("Server response: %s\n", buffer);
+}
+
+// Function to view details of a specific student based on stud_id
+void viewStudentDetails(int serverSocket) {
+    char studId[10]; // Assuming stud_id is a string
+    char buffer[1024];
+    ssize_t bytesRead;
+
+    printf("Enter the stud_id of the student you want to view: ");
+    fgets(studId, sizeof(studId), stdin);
+    strtok(studId, "\n"); // Remove newline character
+
+    // Send the entered stud_id to the server
+    send(serverSocket, studId, strlen(studId), 0);
+
+    // Receive and display student details until "END" is received
+    while (1) {
+        bytesRead = recv(serverSocket, buffer, sizeof(buffer), 0);
+
+        if (bytesRead <= 0) {
+            printf("No student details received.\n");
+            break;
+        }
+
+        // Check if "END" is received, indicating the end of data transmission
+        if (strncmp(buffer, "END", 3) == 0) {
+            printf("End of student details.\n");
+            break;
+        }
+
+        // Tokenize the received data based on spaces
+        char* token = strtok(buffer, " ");
+        while (token != NULL) {
+            printf("%s", token); // Replace getLabel() with the appropriate label
+            token = strtok(NULL, " ");
+        }
+    }
+}
 
 
 int main() {
     int clientSocket;
     struct sockaddr_in serverAddr;
-    char buffer[1024];
     char username[100];
     char password[100];
     char userRole[10]; // Change the size as needed
@@ -52,16 +175,82 @@ int main() {
         printf("Login Type ->\n");
         printf("Enter role (1 for Admin, 2 for Faculty, 3 for Student): ");
         fgets(userRole, sizeof(userRole), stdin);
-        printf("Writin role\n");
+
+        // Sending the userRole to the server ->
         write(clientSocket, userRole, strlen(userRole));
-        printf("Done role\n");
-        
         printf("Enter login_id -> ");
         fgets(username, sizeof(username), stdin);
+
+        // Sending the username to the server ->
         write(clientSocket, username, strlen(username));
         printf("Enter password -> ");
         fgets(password, sizeof(password), stdin);
+
+        // Sending the password to the server ->
         write(clientSocket, password, strlen(password));
+
+        // Recivig the authentication information based on the server
+        memset(buffer, 0, sizeof(buffer));
+        recv(clientSocket, buffer, sizeof(buffer), 0);
+
+        if(strcmp(buffer, "Authenticated") == 0){
+            if (atoi(userRole) == 1) {
+                // Collect student data from the client
+                while(1){
+                    printf("------------Welcome to Admin Menu-----------\n");
+                    printf("1.) Add Student\n");
+                    printf("2.) View Student Details\n");
+                    printf("3.) Add Faculty\n");
+                    printf("4.) View Faculty Details\n");
+                    printf("5.) Modify Student Details\n");
+                    printf("6.) Modify Faculty Details\n");
+                    printf("7.) Logout and Exit\n");
+
+                    int adminChoice;
+                    scanf("%d", &adminChoice);
+                    char choiceStr[10];
+                    snprintf(choiceStr, sizeof(choiceStr), "%d", adminChoice);
+                    send(clientSocket, choiceStr, strlen(choiceStr), 0);
+                    getchar();
+
+                    switch (adminChoice) {
+                        case 1:
+                            // Add Student functionality
+                            addStudent(clientSocket);
+                            break;
+                            
+                        case 2:
+                            viewStudentDetails(clientSocket);
+                            break;
+
+                        case 3:
+                            addFaculty(clientSocket);
+                            break;
+
+                        case 4:
+                            // Update Student/Faculty details functionality
+                            // Implement this function
+                            // updateStudentFacultyDetails(clientSocket);
+                            break;
+                            
+                        case 5:
+                            // Exit
+                            printf("Admin session ended.\n");
+                            close(clientSocket);
+                            return 0;
+                            
+                        default:
+                            printf("Invalid choice. Please try again.\n");
+                            break;
+                    }
+                }
+
+                addStudent(clientSocket);
+            }
+        }
+        else {
+            printf("Authentication failed. Invalid username or password.\n");
+        }
 
         // Receive and process responses from the server using system calls
         memset(buffer, 0, sizeof(buffer));

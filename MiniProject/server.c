@@ -20,24 +20,25 @@ const char* courseFile = "courses.txt";
 
 // student structure
 typedef struct {
-    char name[20];
-    int age;
-    int stud_id;
-    char email_id[30];
-    char address[100];
     char login_id[50];
     char password[50];
+    char name[20];
+    int age;
+    char email_id[30];
+    char address[100];
+    int stud_id;
 } Student;
 
 // Faculty structure
 typedef struct {
+    char login_id[50];
+    char password[50];
     char name[20];
     char department[20];
     char designation[20];
     char email_id[30];
     char address[100];
-    char login_id[50];
-    char password[50];
+    int faculty_id;
 } Faculty;
 
 // Admin Structure
@@ -56,6 +57,7 @@ typedef struct {
     int credits;
     int availableSeats;
 } Course;
+
 
 // function to implement correct readline in the server
 ssize_t readLine(int fd, char* buffer, size_t maxLength) {
@@ -177,6 +179,276 @@ int authenticate(const char* username, const char* password, int role) {
     }
 }
 
+
+//----------------------------------Below are the various functionalities that in order to manipulae the DataBase-------------------------------------------
+
+//Function to add a student with auto-incrementing stud_id
+
+void addStudent(Student newStudent) {
+    // Open the student data file for reading to find the highest stud_id
+    int maxStudId = 0; // Initialize to 0
+
+    int studentDataFile = open("student.txt", O_RDONLY);
+    if (studentDataFile == -1) {
+        perror("Error opening student data file");
+        return;
+    }
+
+    char line[256];
+    ssize_t bytesRead;
+    while ((bytesRead = read(studentDataFile, line, sizeof(line))) > 0) {
+        // Parse the line to extract the stud_id and check for the maximum
+        int stud_id;
+        if (sscanf(line, "%*s %*s %*s %*d %*s %*s %d", &stud_id) == 1) {
+            if (stud_id > maxStudId) {
+                maxStudId = stud_id;
+            }
+        }
+    }
+    close(studentDataFile);
+
+    // Create or open the student data file for appending
+    studentDataFile = open("student.txt", O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    if (studentDataFile == -1) {
+        perror("Error opening student data file");
+        return;
+    }
+
+    if (maxStudId == 0) {
+        newStudent.stud_id = 1;
+    }
+    else{
+        newStudent.stud_id = maxStudId + 1;
+    }
+
+    // Create the login ID by appending "MT" to the stud_id
+    snprintf(newStudent.login_id, sizeof(newStudent.login_id), "MT%d", newStudent.stud_id);
+
+    // Generate a temporary password (you can implement your own logic)
+    snprintf(newStudent.password, sizeof(newStudent.password), "1234");
+
+    // Format the student data with space-separated values
+    char formattedData[256];
+    snprintf(formattedData, sizeof(formattedData), "%s %s %s %d %s %s %d\n",
+             newStudent.login_id,
+             newStudent.password,
+             newStudent.name,
+             newStudent.age,
+             newStudent.email_id,
+             newStudent.address,
+             newStudent.stud_id);
+
+    // Write the formatted student data to the file
+    ssize_t bytesWritten = write(studentDataFile, formattedData, strlen(formattedData));
+    if (bytesWritten == strlen(formattedData)) {
+        printf("Student added successfully with stud_id: %d\n", newStudent.stud_id);
+    } else {
+        printf("Error adding student.\n");
+    }
+    close(studentDataFile);
+}
+
+// Function to add a New Faculty ->
+
+void addFaculty(Faculty newFaculty) {
+    // Open the student data file for reading to find the highest stud_id
+    int maxFacultyId = 0; // Initialize to 0
+
+    int facultyDataFile = open("faculty.txt", O_RDONLY);
+    if (facultyDataFile == -1) {
+        perror("Error opening faculty data file");
+        return;
+    }
+
+    char line[256];
+    ssize_t bytesRead;
+    while ((bytesRead = read(facultyDataFile, line, sizeof(line))) > 0) {
+        // Parse the line to extract the stud_id and check for the maximum
+        int faculty_id;
+        if (sscanf(line, "%*s %*s %*s %*s %*s %*s %d", &faculty_id) == 1) {
+            if (faculty_id > maxFacultyId) {
+                maxFacultyId = faculty_id;
+            }
+        }
+    }
+    close(facultyDataFile);
+
+    // Create or open the student data file for appending
+    facultyDataFile = open("faculty.txt", O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    if (facultyDataFile == -1) {
+        perror("Error opening faculty data file");
+        return;
+    }
+
+    if (maxFacultyId == 0) {
+        newFaculty.faculty_id = 1;
+    }
+    else{
+        newFaculty.faculty_id = maxFacultyId + 1;
+    }
+
+    // Create the login ID by appending "MT" to the stud_id
+    snprintf(newFaculty.login_id, sizeof(newFaculty.login_id), "PF%d", newFaculty.faculty_id);
+
+    // Generate a temporary password (you can implement your own logic)
+    snprintf(newFaculty.password, sizeof(newFaculty.password), "1234");
+
+    // Format the student data with space-separated values
+    char formattedData[256];
+    snprintf(formattedData, sizeof(formattedData), "%s %s %s %s %s %s %d\n",
+             newFaculty.login_id,
+             newFaculty.password,
+             newFaculty.name,
+             newFaculty.designation,
+             newFaculty.email_id,
+             newFaculty.address,
+             newFaculty.faculty_id);
+
+    // Write the formatted student data to the file
+    ssize_t bytesWritten = write(facultyDataFile, formattedData, strlen(formattedData));
+    if (bytesWritten == strlen(formattedData)) {
+        printf("Faculty added successfully with stud_id: %d\n", newFaculty.faculty_id);
+    } else {
+        printf("Error adding student.\n");
+    }
+    close(facultyDataFile);
+}
+
+// Function to send details of a specific student based on stud_id
+void sendStudentDetailsByStudId(int clientSocket, int stud_id) {
+    // Open the student data file for reading
+    int studentDataFile = open("student.txt", O_RDONLY);
+    if (studentDataFile == -1) {
+        perror("Error opening student data file");
+        return;
+    }
+    //printf("Function call\n");
+    char buffer[1024];
+    ssize_t bytesRead;
+    int studentFound = 0;
+
+    // Inside the loop that reads student data from the file
+    while ((bytesRead = readLine(studentDataFile, buffer, sizeof(buffer))) > 0) {
+        // Tokenize the data based on spaces
+        char* token = strtok(buffer, " ");
+        
+        // Initialize variables to store each field
+        char login_id[50];
+        char password[50];
+        char name[20];
+        int age;
+        char email_id[30];
+        char address[100];
+        int currentStudId;
+
+        // Tokenize the line and extract each field
+        while (token != NULL) {
+            // Assuming the order of fields in each line
+            strcpy(login_id, token);
+            token = strtok(NULL, " ");
+            strcpy(password, token);
+            token = strtok(NULL, " ");
+            strcpy(name, token);
+            token = strtok(NULL, " ");
+            age = atoi(token);
+            token = strtok(NULL, " ");
+            strcpy(email_id, token);
+            token = strtok(NULL, " ");
+            strcpy(address, token);
+            token = strtok(NULL, " ");
+            currentStudId = atoi(token); // Last field is stud_id
+            break; // Exit the inner loop after processing all fields
+        }
+
+        if (currentStudId == stud_id) {
+            // Send the details to the client
+            printf("Found the ID\n");
+            send(clientSocket, buffer, bytesRead, 0);
+            studentFound = 1; // Set the flag to indicate the student is found
+            break;
+        }
+    }
+
+
+    // Send "END" to indicate the end of data transmission
+    send(clientSocket, "END", 3, 0);
+
+    // Close the file
+    close(studentDataFile);
+
+    if (!studentFound) {
+        // Handle the case where the student with the given stud_id was not found
+        send(clientSocket, "Student not found.", strlen("Student not found."), 0);
+    }
+}
+
+
+
+//----------------------------------Below are some helper functions which further calls the actual functions to handle DB----------------------------------
+
+// I have done this so as to provide more modularity and reusability of my code
+
+void handleAddStudent(int newSocket){
+    char studentData[256];
+    recv(newSocket, studentData, sizeof(studentData), 0);
+
+    // Parse the received data into the Student structure
+    Student newStudent;
+    memset(&newStudent, 0, sizeof(Student)); // Initialize the structure
+    sscanf(studentData, "%s %d %s %s",
+            newStudent.name,
+            &newStudent.age,
+            newStudent.email_id,
+            newStudent.address);
+    // Add the student
+    addStudent(newStudent);
+
+    // Notify the client about the operation's success
+    send(newSocket, "Student added successfully", sizeof("Student added successfully"), 0);
+}
+
+void handleAddFaculty(int newSocket){
+    char facultyData[256];
+    recv(newSocket, facultyData, sizeof(facultyData), 0);
+
+    // Parse the received data into the Faculty structure
+    Faculty newFaculty;
+    memset(&newFaculty, 0, sizeof(Faculty)); // Initialize the structure
+    sscanf(facultyData, "%s %s %s %s %s",
+            newFaculty.name,
+            newFaculty.department,
+            newFaculty.designation,
+            newFaculty.email_id,
+            newFaculty.address);
+    // Add the faculty
+    addFaculty(newFaculty);
+
+    // Notify the client about the operation's success
+    send(newSocket, "Faculty added successfully", sizeof("Student added successfully"), 0);
+}
+
+// Function to view student details
+void handleViewStudDeatils(int clientSocket) {
+    
+    // Receive the stud_id sent by the client
+    char studId[10]; // Assuming stud_id is a string
+    ssize_t bytesReceived = recv(clientSocket, studId, sizeof(studId), 0);
+
+    if (bytesReceived <= 0) {
+        printf("No stud_id received.\n");
+        // Handle no stud_id received or client disconnection if needed
+    } else {
+        // Remove trailing newline character if present
+        studId[strcspn(studId, "\n")] = '\0';
+        printf("Received stud_id: %s\n", studId);
+        int stud_id = atoi(studId);
+        // Now you have the received stud_id, and you can use it as needed.
+        // For example, you can call a function to send student details based on stud_id:
+        sendStudentDetailsByStudId(clientSocket, stud_id);
+    }
+}
+
+
 int main() {
     int serverSocket, newSocket;
     struct sockaddr_in serverAddr, newAddr;
@@ -220,8 +492,6 @@ int main() {
             continue;
         }
 
-        //printf("Connection accepted from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
-
         // Code for Authentication :-> 
 
         memset(username, 0, sizeof(username));
@@ -247,10 +517,54 @@ int main() {
 
         // Authenticate the user and get their role
         if (authenticate(username, password, role)) {
-            printf("Authentication successful\n");
-            // Depending on the user's role, you can perform role-specific actions here
+            printf("Authentication successful. User role: %d\n", role);
+
+            // Notify the client about successful authentication
+            send(newSocket, "Authenticated", sizeof("Authenticated"), 0);
+
+            // If the user is an Admin (role == 1), display the menu
+            if (role == 1) {
+
+                char choiceStr[10];
+                ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
+
+                if (bytesReceived <= 0) {
+                    printf("Client disconnected or error while receiving choice.\n");
+                    // Handle disconnection or error if needed
+                } else {
+                    // Convert the received choice to an integer
+                    int adminChoice = atoi(choiceStr);
+
+                    switch (adminChoice) {
+                        case 1:
+                            handleAddStudent(newSocket);
+                            break;
+                        case 2:
+                            handleViewStudDeatils(newSocket);
+                            break;
+                        case 3:
+                            handleAddFaculty(newSocket);
+                            break;
+                        case 4:
+                            // Handle Update Student/Faculty details functionality
+                            // updateStudentFacultyDetails(clientSocket);
+                            break;
+                        case 5:
+                            // Handle Exit functionality
+                            printf("Admin session ended.\n");
+                            close(newSocket);
+                            return 0;
+                        default:
+                            printf("Invalid choice received from the client.\n");
+                            // Handle invalid choice if needed
+                            break;
+                    }
+                }
+            }
         } else {
             printf("Authentication failed. Invalid username or password.\n");
+            // Inform the client about authentication failure
+            send(newSocket, "Authentication failed. Invalid username or password.", strlen("Authentication failed. Invalid username or password."), 0);
         }
 
         // Implement communication with the client using system calls
