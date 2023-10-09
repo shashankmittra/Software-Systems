@@ -295,10 +295,11 @@ void addFaculty(Faculty newFaculty) {
 
     // Format the student data with space-separated values
     char formattedData[256];
-    snprintf(formattedData, sizeof(formattedData), "%s %s %s %s %s %s %d\n",
+    snprintf(formattedData, sizeof(formattedData), "%s %s %s %s %s %s %s %d\n",
              newFaculty.login_id,
              newFaculty.password,
              newFaculty.name,
+             newFaculty.department,
              newFaculty.designation,
              newFaculty.email_id,
              newFaculty.address,
@@ -322,7 +323,7 @@ void sendStudentDetailsByStudId(int clientSocket, int stud_id) {
         perror("Error opening student data file");
         return;
     }
-    //printf("Function call\n");
+
     char buffer[1024];
     ssize_t bytesRead;
     int studentFound = 0;
@@ -331,57 +332,135 @@ void sendStudentDetailsByStudId(int clientSocket, int stud_id) {
     while ((bytesRead = readLine(studentDataFile, buffer, sizeof(buffer))) > 0) {
         // Tokenize the data based on spaces
         char* token = strtok(buffer, " ");
-        
-        // Initialize variables to store each field
-        char login_id[50];
-        char password[50];
-        char name[20];
-        int age;
-        char email_id[30];
-        char address[100];
-        int currentStudId;
+        Student student;
 
-        // Tokenize the line and extract each field
-        while (token != NULL) {
-            // Assuming the order of fields in each line
-            strcpy(login_id, token);
+        // Initialize the student structure
+        memset(&student, 0, sizeof(Student));
+
+        // Extract and fill the fields of the student structure
+        if (token) {
+            strcpy(student.login_id, token);
             token = strtok(NULL, " ");
-            strcpy(password, token);
+        }
+        if (token) {
+            strcpy(student.password, token);
             token = strtok(NULL, " ");
-            strcpy(name, token);
+        }
+        if (token) {
+            strcpy(student.name, token);
             token = strtok(NULL, " ");
-            age = atoi(token);
+        }
+        if (token) {
+            student.age = atoi(token);
             token = strtok(NULL, " ");
-            strcpy(email_id, token);
+        }
+        if (token) {
+            strcpy(student.email_id, token);
             token = strtok(NULL, " ");
-            strcpy(address, token);
+        }
+        if (token) {
+            strcpy(student.address, token);
             token = strtok(NULL, " ");
-            currentStudId = atoi(token); // Last field is stud_id
-            break; // Exit the inner loop after processing all fields
+        }
+        if (token) {
+            student.stud_id = atoi(token);
         }
 
-        if (currentStudId == stud_id) {
-            // Send the details to the client
-            printf("Found the ID\n");
-            send(clientSocket, buffer, bytesRead, 0);
+        // Check if the current student's stud_id matches the requested stud_id
+        if (student.stud_id == stud_id) {
+            // Send the student details to the client
+            send(clientSocket, &student, sizeof(Student), 0);
             studentFound = 1; // Set the flag to indicate the student is found
             break;
         }
     }
-
-
-    // Send "END" to indicate the end of data transmission
-    send(clientSocket, "END", 3, 0);
 
     // Close the file
     close(studentDataFile);
 
     if (!studentFound) {
         // Handle the case where the student with the given stud_id was not found
-        send(clientSocket, "Student not found.", strlen("Student not found."), 0);
+        Student notFoundStudent;
+        snprintf(notFoundStudent.login_id, sizeof(notFoundStudent.login_id), "Student not found.");
+        send(clientSocket, &notFoundStudent, sizeof(Student), 0);
     }
 }
 
+
+// Function to send details of a specific student based on stud_id
+void sendFacultyDetailsByFacutyId(int clientSocket, int faculty_id) {
+    // Open the faculty data file for reading
+    int facultyDataFile = open("faculty.txt", O_RDONLY);
+    if (facultyDataFile == -1) {
+        perror("Error opening facukty data file");
+        return;
+    }
+
+    char buffer[1024];
+    ssize_t bytesRead;
+    int facultyFound = 0;
+
+    // Inside the loop that reads faculty data from the file
+    while ((bytesRead = readLine(facultyDataFile, buffer, sizeof(buffer))) > 0) {
+        // Tokenize the data based on spaces
+        char* token = strtok(buffer, " ");
+        Faculty faculty;
+
+        // Initialize the student structure
+        memset(&faculty, 0, sizeof(Faculty));
+
+        // Extract and fill the fields of the student structure
+        if (token) {
+            strcpy(faculty.login_id, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            strcpy(faculty.password, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            strcpy(faculty.name, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            strcpy(faculty.department, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            strcpy(faculty.designation, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            strcpy(faculty.email_id, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            strcpy(faculty.address, token);
+            token = strtok(NULL, " ");
+        }
+        if (token) {
+            faculty.faculty_id = atoi(token);
+        }
+
+        // Check if the current student's stud_id matches the requested stud_id
+        if (faculty.faculty_id == faculty_id) {
+            // Send the faculty details to the client
+            send(clientSocket, &faculty, sizeof(Faculty), 0);
+            facultyFound = 1; // Set the flag to indicate the faculty is found
+            break;
+        }
+    }
+
+    // Close the file
+    close(facultyDataFile);
+
+    if (!facultyFound) {
+        // Handle the case where the faculty with the given stud_id was not found
+        Faculty notFoundFaculty;
+        snprintf(notFoundFaculty.login_id, sizeof(notFoundFaculty.login_id), "Faculty not found.");
+        send(clientSocket, &notFoundFaculty, sizeof(Faculty), 0);
+    }
+}
 
 
 //----------------------------------Below are some helper functions which further calls the actual functions to handle DB----------------------------------
@@ -442,12 +521,32 @@ void handleViewStudDeatils(int clientSocket) {
         studId[strcspn(studId, "\n")] = '\0';
         printf("Received stud_id: %s\n", studId);
         int stud_id = atoi(studId);
-        // Now you have the received stud_id, and you can use it as needed.
-        // For example, you can call a function to send student details based on stud_id:
+        // Now we have the received stud_id, and you can use it as needed.
+        // For example, we can call a function to send student details based on stud_id:
         sendStudentDetailsByStudId(clientSocket, stud_id);
     }
 }
 
+// Function to view Faculty details
+void handleViewFacultyDeatils(int clientSocket) {
+    
+    // Receive the faculty_id sent by the client
+    char facultyId[10]; // Assuming faculty_id is a string
+    ssize_t bytesReceived = recv(clientSocket, facultyId, sizeof(facultyId), 0);
+
+    if (bytesReceived <= 0) {
+        printf("No faculty_id received.\n");
+        // Handle no faculty_id received or client disconnection if needed
+    } else {
+        // Remove trailing newline character if present
+        facultyId[strcspn(facultyId, "\n")] = '\0';
+        printf("Received faculty_id: %s\n", facultyId);
+        int faculty_Id = atoi(facultyId);
+        // Now we have the received faculty_id, and you can use it as needed.
+        // For example, we can call a function to send student details based on faculty_id
+        sendFacultyDetailsByFacutyId(clientSocket, faculty_Id);
+    }
+}
 
 int main() {
     int serverSocket, newSocket;
@@ -546,8 +645,7 @@ int main() {
                             handleAddFaculty(newSocket);
                             break;
                         case 4:
-                            // Handle Update Student/Faculty details functionality
-                            // updateStudentFacultyDetails(clientSocket);
+                            handleViewFacultyDeatils(newSocket);
                             break;
                         case 5:
                             // Handle Exit functionality

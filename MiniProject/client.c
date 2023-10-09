@@ -99,7 +99,7 @@ void addFaculty(int clientSocket){
 // Function to view details of a specific student based on stud_id
 void viewStudentDetails(int serverSocket) {
     char studId[10]; // Assuming stud_id is a string
-    char buffer[1024];
+    Student student;
     ssize_t bytesRead;
 
     printf("Enter the stud_id of the student you want to view: ");
@@ -109,30 +109,63 @@ void viewStudentDetails(int serverSocket) {
     // Send the entered stud_id to the server
     send(serverSocket, studId, strlen(studId), 0);
 
-    // Receive and display student details until "END" is received
-    while (1) {
-        bytesRead = recv(serverSocket, buffer, sizeof(buffer), 0);
+    // Receive and display student details
+    bytesRead = recv(serverSocket, &student, sizeof(Student), 0);
 
-        if (bytesRead <= 0) {
-            printf("No student details received.\n");
-            break;
-        }
+    if (bytesRead <= 0) {
+        printf("Error receiving student details.\n");
+        return;
+    }
 
-        // Check if "END" is received, indicating the end of data transmission
-        if (strncmp(buffer, "END", 3) == 0) {
-            printf("End of student details.\n");
-            break;
-        }
-
-        // Tokenize the received data based on spaces
-        char* token = strtok(buffer, " ");
-        while (token != NULL) {
-            printf("%s", token); // Replace getLabel() with the appropriate label
-            token = strtok(NULL, " ");
-        }
+    // Check if the received data indicates that the student was not found
+    if (strncmp(student.login_id, "Student not found.", sizeof(student.login_id)) == 0) {
+        printf("No student details found for the provided stud_id.\n");
+    } else {
+        // Print the received student details
+        printf("Login ID: %s\n", student.login_id);
+        printf("Name: %s\n", student.name);
+        printf("Age: %d\n", student.age);
+        printf("Email ID: %s\n", student.email_id);
+        printf("Address: %s\n", student.address);
+        printf("Stud ID: %d\n", student.stud_id);
     }
 }
 
+// Function to view details of a specific faculty based on stud_id
+void viewFacultyDetails (int serverSocket) {
+    char facultyId[10]; // Assuming faculty_id is a string
+    Faculty faculty;
+    ssize_t bytesRead;
+
+    printf("Enter the faculty_id of the Faculty you want to view: ");
+    fgets(facultyId, sizeof(facultyId), stdin);
+    strtok(facultyId, "\n"); // Remove newline character
+
+    // Send the entered stud_id to the server
+    send(serverSocket, facultyId, strlen(facultyId), 0);
+
+    // Receive and display student details
+    bytesRead = recv(serverSocket, &faculty, sizeof(Faculty), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving faculty details.\n");
+        return;
+    }
+
+    // Check if the received data indicates that the faculty was not found
+    if (strncmp(faculty.login_id, "Faculty not found.", sizeof(faculty.login_id)) == 0) {
+        printf("No faculty details found for the provided stud_id.\n");
+    } else {
+        // Print the received faculty details
+        printf("Login ID: %s\n", faculty.login_id);
+        printf("Name: %s\n", faculty.name);
+        printf("Department: %s\n", faculty.department);
+        printf("Designation: %s\n", faculty.designation);
+        printf("Email ID: %s\n", faculty.email_id);
+        printf("Address : %s\n", faculty.address);
+        printf("Faculty ID : %d\n", faculty.faculty_id);
+    }
+}
 
 int main() {
     int clientSocket;
@@ -228,17 +261,15 @@ int main() {
                             break;
 
                         case 4:
-                            // Update Student/Faculty details functionality
-                            // Implement this function
-                            // updateStudentFacultyDetails(clientSocket);
+                            viewFacultyDetails(clientSocket);
                             break;
                             
                         case 5:
                             // Exit
                             printf("Admin session ended.\n");
                             close(clientSocket);
-                            return 0;
-                            
+                            break;
+
                         default:
                             printf("Invalid choice. Please try again.\n");
                             break;
