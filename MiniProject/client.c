@@ -31,8 +31,23 @@ typedef struct {
     int faculty_id;
 } Faculty;
 
+typedef struct {
+    char courseName[50];
+    char department[20];
+    int totalseats;
+    int credits;
+    int availableSeats;
+    int courseId;
+} Course;
 
-void addStudent(int clientSocket){
+// Link structure
+typedef struct {
+    int stud_id;
+    int faculty_id;
+    Course courses[30];
+} Link;
+
+void addStudent(int clientSocket) {
     Student newStudent;
     memset(&newStudent, 0, sizeof(Student)); // Initialize the structure
     printf("Enter student name: ");
@@ -45,56 +60,70 @@ void addStudent(int clientSocket){
     printf("Enter student address: ");
     fgets(newStudent.address, sizeof(newStudent.address), stdin);
 
-    // Format the student data as space-separated values
+    // Remove the trailing newline characters
+    strtok(newStudent.name, "\n");
+    strtok(newStudent.email_id, "\n");
+    strtok(newStudent.address, "\n");
+
+    // Format the student data with "$" delimiter
     char formattedData[256];
-    snprintf(formattedData, sizeof(formattedData), "%s %d %s %s\n",
+    snprintf(formattedData, sizeof(formattedData), "%s$%d$%s$%s",
             newStudent.name,
             newStudent.age,
             newStudent.email_id,
             newStudent.address);
 
     // Send the formatted data to the server
-    send(clientSocket, formattedData, sizeof(formattedData), 0);
-
+    send(clientSocket, formattedData, strlen(formattedData), 0);
 
     // Receive and display the server's response
+    char buffer[256];
     memset(buffer, 0, sizeof(buffer));
     recv(clientSocket, buffer, sizeof(buffer), 0);
     printf("Server response: %s\n", buffer);
 }
 
-void addFaculty(int clientSocket){
-    Faculty newFaculty;
-    memset(&newFaculty, 0, sizeof(Faculty)); // Initialize the structure
-    printf("Enter Faculty name: ");
-    fgets(newFaculty.name, sizeof(newFaculty.name), stdin);
-    printf("Enter Faculty Department: ");
-    fgets(newFaculty.department, sizeof(newFaculty.department), stdin);
-    printf("Enter Faculty Designation: ");
-    fgets(newFaculty.designation, sizeof(newFaculty.designation), stdin);
-    printf("Enter faculty email_id: ");
-    fgets(newFaculty.email_id, sizeof(newFaculty.email_id), stdin);
-    printf("Enter faculty address: ");
-    fgets(newFaculty.address, sizeof(newFaculty.address), stdin);
 
-    // Format the student data as space-separated values
+void addFaculty(int clientSocket) {
+    Faculty newfaculty;
+    memset(&newfaculty, 0, sizeof(Faculty)); // Initialize the structure
+    printf("Enter student name: ");
+    fgets(newfaculty.name, sizeof(newfaculty.name), stdin);
+    printf("Enter student department: ");
+    fgets(newfaculty.department, sizeof(newfaculty.department), stdin);
+    printf("Enter student designation: ");
+    fgets(newfaculty.designation, sizeof(newfaculty.designation), stdin);
+    printf("Enter student email_id: ");
+    fgets(newfaculty.email_id, sizeof(newfaculty.email_id), stdin);
+    printf("Enter student address: ");
+    fgets(newfaculty.address, sizeof(newfaculty.address), stdin);
+
+    // Remove the trailing newline characters
+    strtok(newfaculty.name, "\n");
+    strtok(newfaculty.department, "\n");
+    strtok(newfaculty.designation, "\n");
+    strtok(newfaculty.email_id, "\n");
+    strtok(newfaculty.address, "\n");
+
+    // Format the student data with "$" delimiter
     char formattedData[256];
-    snprintf(formattedData, sizeof(formattedData), "%s %s %s %s %s\n",
-            newFaculty.name,
-            newFaculty.department,
-            newFaculty.designation,
-            newFaculty.email_id,
-            newFaculty.address);
+    snprintf(formattedData, sizeof(formattedData), "%s$%s$%s$%s$%s",
+            newfaculty.name,
+            newfaculty.department,
+            newfaculty.designation,
+            newfaculty.email_id,
+            newfaculty.address);
 
     // Send the formatted data to the server
-    send(clientSocket, formattedData, sizeof(formattedData), 0);
-
+    send(clientSocket, formattedData, strlen(formattedData), 0);
 
     // Receive and display the server's response
+    char buffer[256];
     memset(buffer, 0, sizeof(buffer));
     recv(clientSocket, buffer, sizeof(buffer), 0);
     printf("Server response: %s\n", buffer);
 }
+
 
 // Function to view details of a specific student based on stud_id
 void viewStudentDetails(int serverSocket) {
@@ -131,7 +160,7 @@ void viewStudentDetails(int serverSocket) {
     }
 }
 
-// Function to view details of a specific faculty based on stud_id
+// Function to view details of a specific faculty based on faculty_id
 void viewFacultyDetails (int serverSocket) {
     char facultyId[10]; // Assuming faculty_id is a string
     Faculty faculty;
@@ -166,6 +195,217 @@ void viewFacultyDetails (int serverSocket) {
         printf("Faculty ID : %d\n", faculty.faculty_id);
     }
 }
+
+// Function to modify details of a specific student based on stud_id
+void modifyStudentDetails(int serverSocket) {
+    char studId[10]; // Assuming stud_id is a string
+    Student student;
+
+    printf("Enter the stud_id of the student you want to modify the details of: ");
+    scanf("%s", studId); // Read stud_id as a string
+
+    // Send the entered stud_id to the server
+    send(serverSocket, studId, strlen(studId), 0);
+
+    // Receive a message from the server
+    char response[256];
+    ssize_t bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+        return;
+    }
+
+    // Check if the student was found or not
+    if (strncmp(response, "Student not found", sizeof(response)) == 0) {
+        printf("No student found with the provided stud_id.\n");
+    } else if (strncmp(response, "Error", sizeof(response)) == 0) {
+        printf("Error updating student details on the server.\n");
+    } else {
+        // Now, you can prompt the user for the modified student details
+        // and send them to the server for updating.
+
+        printf("Enter new name: ");
+        scanf("%s", student.name);
+
+        printf("Enter new age: ");
+        scanf("%d", &student.age);
+
+        printf("Enter new email_id: ");
+        scanf("%s", student.email_id);
+
+        printf("Enter new address: ");
+        scanf("%s", student.address);
+
+        // Send the modified student structure to the server for updating
+        send(serverSocket, &student, sizeof(Student), 0);
+
+        // Receive and display the server's response
+        memset(response, 0, sizeof(response));
+        bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+        if (bytesRead <= 0) {
+            printf("Error receiving server response.\n");
+            return;
+        }
+
+        printf("Server response: %s\n", response);
+    }
+}
+
+
+// Function to modify details of a specific student based on stud_id
+void modifyFacultyDetails(int serverSocket) {
+
+}
+
+//----------------------------------Below are the functinalitites related to Faculty-------------------------------//
+
+void viewOfferingCourses(int serverSocket){
+    char call[5] = "Call";
+
+    // Send the signal to the server
+    send(serverSocket, call, strlen(call), 0);
+    // Receive a message from the server
+    char response[256];
+    ssize_t bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+        return;
+    }
+}
+
+void addNewCourse(int serverSocket){
+    Course courses;
+    memset(&courses, 0, sizeof(Course)); // Initialize the structure
+    printf("Enter Course name: ");
+    fgets(courses.courseName, sizeof(courses.courseName), stdin);
+    printf("Enter course department: ");
+    fgets(courses.department, sizeof(courses.department), stdin);
+    printf("Enter tatal Seats: ");
+    scanf("%d", &courses.totalseats);
+    getchar(); // Consume newline character
+    printf("Enter available seats: ");
+    scanf("%d", &courses.availableSeats);
+    getchar(); // Consume newline character
+    printf("Enter Course credits: ");
+    scanf("%d", &courses.credits);
+    getchar(); // Consume newline character
+
+    // Remove the trailing newline characters
+    strtok(courses.courseName, "\n");
+    strtok(courses.department, "\n");;
+
+    // Format the student data with "$" delimiter
+    char formattedData[256];
+    snprintf(formattedData, sizeof(formattedData), "%s$%s$%d$%d$%d",
+            courses.courseName,
+            courses.department,
+            courses.totalseats,
+            courses.availableSeats,
+            courses.credits);
+
+    // Send the formatted data to the server
+    send(serverSocket, formattedData, strlen(formattedData), 0);
+
+    // Receive and display the server's response
+    char buffer[256];
+    memset(buffer, 0, sizeof(buffer));
+    recv(serverSocket, buffer, sizeof(buffer), 0);
+    printf("Server response: %s\n", buffer);
+}
+
+void removeCourse(int serverSocket){
+    
+}
+
+void updateCourseDetails(int serverSocket) {
+    char courseId[10]; // Assuming courseId is a string
+    Course course;
+
+    printf("Enter the courseId of the course you want to modify the details of: ");
+    scanf("%s", courseId); // Read courseId as a string
+
+    // Send the entered courseId to the server
+    send(serverSocket, courseId, strlen(courseId), 0);
+
+    // Receive a message from the server
+    char response[256];
+    ssize_t bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+        return;
+    }
+
+    // Check if the course was found or not
+    if (strncmp(response, "Course not found", sizeof(response)) == 0) {
+        printf("No course found with the provided courseId.\n");
+    } else if (strncmp(response, "Error", sizeof(response)) == 0) {
+        printf("Error updating course details on the server.\n");
+    } else {
+        // Now, you can prompt the user for the modified course details
+        // and send them to the server for updating.
+
+        printf("Enter new course name: ");
+        scanf("%s", course.courseName);
+
+        printf("Enter new department: ");
+        scanf("%s", course.department);
+
+        printf("Enter new total seats: ");
+        scanf("%d", &course.totalseats);
+
+        printf("Enter new credits: ");
+        scanf("%d", &course.credits);
+
+        printf("Enter new available seats: ");
+        scanf("%d", &course.availableSeats);
+
+        // Send the modified course structure to the server for updating
+        send(serverSocket, &course, sizeof(Course), 0);
+
+        // Receive and display the server's response
+        memset(response, 0, sizeof(response));
+        bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+        if (bytesRead <= 0) {
+            printf("Error receiving server response.\n");
+            return;
+        }
+
+        printf("Server response: %s\n", response);
+    }
+}
+
+
+void changeFacultyPass(int serverSocket){
+    
+}
+
+//----------------------------------Below are the functinalitites related to Student-------------------------------//
+
+void viewAllCourses(int serverSocket){
+
+}
+
+void enrollNewCourse(int serverSocket){
+    
+}
+
+void dropCourse(int serverSocket){
+    
+}
+
+void viewEnrolledCourseDetails(int serverSocket){
+    
+}
+
+void changeStudentPass(int serverSocket){
+    
+}
+
 
 int main() {
     int clientSocket;
@@ -263,8 +503,16 @@ int main() {
                         case 4:
                             viewFacultyDetails(clientSocket);
                             break;
-                            
+                        
                         case 5:
+                            modifyStudentDetails(clientSocket);
+                            break;
+
+                        case 6:
+                            modifyFacultyDetails(clientSocket);
+                            break;
+                            
+                        case 7:
                             // Exit
                             printf("Admin session ended.\n");
                             close(clientSocket);
@@ -275,8 +523,113 @@ int main() {
                             break;
                     }
                 }
+            }
+            
+            // When user role == 2 Then the user is a Faculty - 
+            else if(atoi(userRole) == 2){
+                while(1){
+                    printf("------------Welcome to Faculty Menu-----------\n");
+                    printf("1.) View Offering Course\n");
+                    printf("2.) Add new Course\n");
+                    printf("3.) Remove courses from the Catalog\n");
+                    printf("4.) Update Course Details\n");
+                    printf("5.) Change Password\n");
+                    printf("6.) Logout and Exit\n");
 
-                addStudent(clientSocket);
+                    int facultyChoice;
+                    scanf("%d", &facultyChoice);
+                    char choiceStr[10];
+                    snprintf(choiceStr, sizeof(choiceStr), "%d", facultyChoice);
+                    send(clientSocket, choiceStr, strlen(choiceStr), 0);
+                    getchar();
+
+                    switch (facultyChoice) {
+                        case 1:
+                            // Add Student functionality
+                            viewOfferingCourses(clientSocket);
+                            break;
+                            
+                        case 2:
+                            addNewCourse(clientSocket);
+                            break;
+
+                        case 3:
+                            removeCourse(clientSocket);
+                            break;
+
+                        case 4:
+                            updateCourseDetails(clientSocket);
+                            break;
+                        
+                        case 5:
+                            changeFacultyPass(clientSocket);
+                            break;
+                            
+                        case 6:
+                            // Exit
+                            printf("Student session ended.\n");
+                            close(clientSocket);
+                            break;
+
+                        default:
+                            printf("Invalid choice. Please try again.\n");
+                            break;
+                    }
+                }
+            }
+
+
+            // When user role == 3 Then the user is a student - 
+            else if(atoi(userRole) == 3){
+                while(1){
+                    printf("------------Welcome to Student Menu-----------\n");
+                    printf("1.) View All Course\n");
+                    printf("2.) Enroll new Course\n");
+                    printf("3.) Drop Course\n");
+                    printf("4.) View Enrolled Course Details\n");
+                    printf("5.) Change Password\n");
+                    printf("6.) Logout and Exit\n");
+
+                    int studChoice;
+                    scanf("%d", &studChoice);
+                    char choiceStr[10];
+                    snprintf(choiceStr, sizeof(choiceStr), "%d", studChoice);
+                    send(clientSocket, choiceStr, strlen(choiceStr), 0);
+                    getchar();
+
+                    switch (studChoice) {
+                        case 1:
+                            // Add Student functionality
+                            viewAllCourses(clientSocket);
+                            break;
+                            
+                        case 2:
+                            enrollNewCourse(clientSocket);
+                            break;
+
+                        case 3:
+                            dropCourse(clientSocket);
+                            break;
+
+                        case 4:
+                            viewEnrolledCourseDetails(clientSocket);
+                            break;
+                        
+                        case 5:
+                            changeStudentPass(clientSocket);
+                            break;
+                            
+                        case 6:
+                            // Exit
+                            printf("Student session ended.\n");
+                            close(clientSocket);
+                            break;
+
+                        default:
+                            printf("Invalid choice. Please try again.\n");
+                            break;
+                    }
+                }
             }
         }
         else {
