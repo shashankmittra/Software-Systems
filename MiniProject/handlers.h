@@ -260,21 +260,35 @@ void handleAddCourse(int newSocket, char username[]){
     send(newSocket, "Course added successfully", sizeof("Course added successfully"), 0);
 }
 
-void handleViewOfferingCourses(int clientSocket, char username[]){
+void handleViewOfferingCourses(int clientSocket) {
     char callrecv[10];
+    printf("HEllo\n");
     ssize_t bytesReceived = recv(clientSocket, callrecv, sizeof(callrecv), 0);
-
-    if (bytesReceived <= 0) {
-        printf("Some issue while reciving the signal from clientx.\n");
-        // Handle no courseId received or client disconnection if needed
+    printf("YES!\n");
+    if (bytesReceived <= 0)
+    {
+        printf("Some issue while receiving the signal from the client.\n");
+        // Handle no signal received or client disconnection if needed
         return;
-    } else {
-        // Now we have the received courseId as an integer, and you can use it as needed.
-        // For example, we can call a function to modify student details based on courseId:
-        send(clientSocket, "Received the call for offering courses", sizeof("Received the call for offering courses"), 0);
-        sendCourseDetails(clientSocket, username);
+    }
+    else if (strncmp(callrecv, "Call", 4) == 0)
+    {
+        // Now we have the received signal to view offering courses
+
+        char facultyId[256];
+        bytesReceived = recv(clientSocket, facultyId, sizeof(facultyId), 0);
+
+        if (bytesReceived <= 0) {
+            printf("Error receiving faculty_id from the client.\n");
+            // Handle no faculty_id received or client disconnection if needed
+            return;
+        } else {
+            // Now you can call the sendCourseDetails function based on the received faculty_id.
+            sendCourseDetails(clientSocket, facultyId);
+        }
     }
 }
+
 
 void handleRemoveCourse(int newSocket){
 }

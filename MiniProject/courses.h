@@ -5,34 +5,42 @@
 void readFacultyCourses() {
     int facultyDataFile = open("facultycourse.txt", O_RDONLY);
     if (facultyDataFile == -1) {
-        perror("Error opening facultycourses data file");
+        perror("Error opening faculty course data file");
         return;
     }
 
-    FacultyCourse facultyCourses;
+    FacultyCourse fc;
     ssize_t bytesRead;
+    int recordCount = 0; // To keep track of the number of valid records
 
-    while ((bytesRead = read(facultyDataFile, &facultyCourses, sizeof(FacultyCourse)) == sizeof(FacultyCourse))) {
-        printf("Faculty ID: %d\n", facultyCourses.faculty_id);
+    // Read and print FacultyCourse data
+    while ((bytesRead = read(facultyDataFile, &fc, sizeof(FacultyCourse))) == sizeof(FacultyCourse)) {
+        // Check if the faculty_id is valid
+        if (fc.faculty_id != 0) {
+            recordCount++; // Increment the record count
 
-        for (int i = 0; i < 30; i++) {
-            if (facultyCourses.courses[i].courseId != 0) {
-                printf("Course ID: %d\n", facultyCourses.courses[i].courseId);
-                printf("Course Name: %s\n", facultyCourses.courses[i].courseName);
-                printf("Department: %s\n", facultyCourses.courses[i].department);
-                printf("Total Seats: %d\n", facultyCourses.courses[i].totalseats);
-                printf("Credits: %d\n", facultyCourses.courses[i].credits);
-                printf("Available Seats: %d\n", facultyCourses.courses[i].availableSeats);
+            // Process the read FacultyCourse structure (print or store it as needed)
+            printf("Faculty ID: %d\n", fc.faculty_id);
+
+            // Print the courses taught by this faculty
+            for (int i = 0; i < 1; i++) { // Iterate through all possible courses
+                if (fc.courses[i].courseId != 0) {
+                    printf("Course %d - Name: %s, Department: %s\n", i + 1, fc.courses[i].courseName, fc.courses[i].department);
+                }
             }
         }
     }
 
+    // Close the file
     close(facultyDataFile);
+
+    // Print the total number of valid records read
+    printf("Total records read: %d\n", recordCount);
 }
 
 
-void addFacultyCouses(Course newCourse, char str[]){
-    // First we will extract the faculty_id from the entered usernmae - 
+void addFacultyCourses(Course newCourse, char str[]) {
+    // Extract the faculty_id from the entered username
     char* remaining;
     int intValue;
 
@@ -40,7 +48,7 @@ void addFacultyCouses(Course newCourse, char str[]){
         remaining = (char*)malloc(strlen(str) - 1); // Allocate memory for the remaining part
         if (remaining == NULL) {
             perror("Memory allocation failed");
-            return ;
+            return;
         }
         strcpy(remaining, str + 2);
         printf("Remaining: %s\n", remaining);
@@ -50,59 +58,51 @@ void addFacultyCouses(Course newCourse, char str[]){
         free(remaining); // Don't forget to free the allocated memory when done.
     } else {
         printf("String does not start with 'PF'\n");
-    }
-
-    // After we found the value of faculty_id and we the the new Course we will store it 
-    // the asssociated file - 
-
-    FacultyCourse existingFC;
-
-    // Update the FacultyCourse structure with the new course
-    existingFC.faculty_id = intValue; // Update faculty_id
-
-    // Find an empty slot in the courses array to add the new course
-    int emptySlot = -1;
-    for (int i = 0; i < 30; i++) {
-        if (existingFC.courses[i].courseId == 0) {
-            emptySlot = i;
-            break;
-        }
-    }
-
-    if (emptySlot != -1) {
-        existingFC.courses[emptySlot] = newCourse; // Add the new course
-    } else {
-        printf("No empty slot available for the new course.\n");
-    }
-
-    // Open the faculty course data file for writing
-    int facultyDataFile = open("facultycourse.txt", O_WRONLY | O_TRUNC);
-    if (facultyDataFile == -1) {
-        perror("Error opening facultycourses data file");
         return;
     }
 
-    // Write the updated FacultyCourse structure back to the file
-    int flag = 1;
-    ssize_t bytesWritten = write(facultyDataFile, &existingFC, sizeof(FacultyCourse));
+    // Initialize a FacultyCourse structure
+    FacultyCourse newFC;
+    newFC.faculty_id = intValue;
+    newFC.courses[0] = newCourse; // Add the new course to the first slot
+
+    // Open the faculty course data file for reading and writing, with appending
+    int facultyDataFile = open("facultycourse.txt", O_RDWR | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    if (facultyDataFile == -1) {
+        perror("Error opening faculty course data file");
+        return;
+    }
+
+
+    // Set the file position at the end of the file and check if it's successful
+    if (lseek(facultyDataFile, 0, SEEK_END) == -1) {
+        perror("Error setting file position");
+        close(facultyDataFile);
+        return;
+    }
+
+    // Write the new FacultyCourse structure to the file
+    ssize_t bytesWritten = write(facultyDataFile, &newFC, sizeof(FacultyCourse));
     if (bytesWritten != sizeof(FacultyCourse)) {
-        flag = 0;
-        perror("Error writing updated data");
+        perror("Error writing data");
+    } else {
+        printf("Faculty course data added successfully.\n");
     }
 
     // Close the file
     close(facultyDataFile);
-
-    readFacultyCourses();
+    readFacultyCourses(); // Make sure to read and display the updated data
 }
+
 
 //Function to add a Course with auto-incrementing course_id
 
 void addCourse(Course newCourse, char username[]) {
-    // Open the course data file for reading to find the highest course_id
+    int courseDataFile;
     int maxCourseId = 0; // Initialize to 0
 
-    int courseDataFile = open("courses.txt", O_RDONLY);
+    // Open the course data file for reading to find the highest course_id
+    courseDataFile = open("courses.txt", O_RDONLY);
     if (courseDataFile == -1) {
         perror("Error opening course data file");
         return;
@@ -116,10 +116,10 @@ void addCourse(Course newCourse, char username[]) {
         char* token = strtok(line, "$");
         Course course;
 
-        // Initialize the student structure
+        // Initialize the course structure
         memset(&course, 0, sizeof(Course));
 
-        // Extract and fill the fields of the student structure
+        // Extract and fill the fields of the course structure
         if (token) {
             strncpy(course.courseName, token, sizeof(course.courseName));
             token = strtok(NULL, "$");
@@ -151,10 +151,23 @@ void addCourse(Course newCourse, char username[]) {
 
     close(courseDataFile);
 
-    // Create or open the course data file for appending
+    // Create or open the course data file for appending with file locking
     courseDataFile = open("courses.txt", O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
     if (courseDataFile == -1) {
         perror("Error opening course data file");
+        return;
+    }
+
+    // Lock the file for exclusive access
+    struct flock lock;
+    lock.l_type = F_WRLCK;
+    lock.l_whence = SEEK_SET;
+    lock.l_start = 0;
+    lock.l_len = 0;
+
+    if (fcntl(courseDataFile, F_SETLKW, &lock) == -1) {
+        perror("Error locking file");
+        close(courseDataFile);
         return;
     }
 
@@ -164,7 +177,7 @@ void addCourse(Course newCourse, char username[]) {
         newCourse.courseId = maxCourseId + 1;
     }
 
-    // Format the student data with "$" delimiter
+    // Format the course data with "$" delimiter
     char formattedData[256];
     snprintf(formattedData, sizeof(formattedData), "%s$%s$%d$%d$%d$%d\n",
              newCourse.courseName,
@@ -177,17 +190,22 @@ void addCourse(Course newCourse, char username[]) {
     // Calculate the length of the formatted data
     size_t dataLength = strlen(formattedData);
 
-    // Write the formatted student data to the file
+    // Write the formatted course data to the file
     ssize_t bytesWritten = write(courseDataFile, formattedData, dataLength);
     if (bytesWritten == dataLength) {
         printf("Course added successfully with course_id - : %d\n", newCourse.courseId);
     } else {
         printf("Error adding course.\n");
     }
+
+    // Unlock the file
+    lock.l_type = F_UNLCK;
+    fcntl(courseDataFile, F_SETLK, &lock);
+
     close(courseDataFile);
 
-    // Now add the the respective details to the facultycourse.txt as well
-    addFacultyCouses(newCourse, username);
+    // Now add the respective details to the facultycourse.txt as well
+    addFacultyCourses(newCourse, username);
 }
 
 // Fucnction to modify the student details from the given stud_id by the client - 
@@ -256,11 +274,62 @@ void updateCourseDetails(int clientSocket, int courseId) {
     }
 }
 
-void sendCourseDetails(int clientSocket, char username[]){
+void sendCourseDetails(int clientSocket, char str[]) {
     int courseDataFile = open("facultycourse.txt", O_RDONLY);
     if (courseDataFile == -1) {
-        perror("Error opening course data file");
+        perror("Error opening facultycourse data file");
         return;
     }
 
+    char* remaining;
+    int intValue;
+
+    if (strlen(str) >= 2 && strncmp(str, "PF", 2) == 0) {
+        remaining = (char*)malloc(strlen(str) - 1); // Allocate memory for the remaining part
+        if (remaining == NULL) {
+            perror("Memory allocation failed");
+            close(courseDataFile);
+            return;
+        }
+        strcpy(remaining, str + 2);
+        printf("Remaining: %s\n", remaining);
+
+        // Convert "remaining" to an integer using atoi
+        intValue = atoi(remaining);
+        free(remaining); // Don't forget to free the allocated memory when done.
+    } else {
+        printf("String does not start with 'PF'\n");
+        close(courseDataFile);
+        return;
+    }
+
+    FacultyCourse fc;
+    ssize_t bytesRead;
+
+    // Read and print FacultyCourse data
+    while ((bytesRead = read(courseDataFile, &fc, sizeof(FacultyCourse)) > 0)) {
+        if (bytesRead != sizeof(FacultyCourse)) {
+            perror("Error reading faculty course data");
+            break;
+        }
+
+        if (fc.faculty_id == intValue) {
+            // Send the course details for this faculty to the client
+            for (int i = 0; i < 30; i++) { // Iterate through all possible courses
+                if (fc.courses[i].courseId != 0) {
+                    // Prepare a formatted message with course details
+                    char courseDetails[256];
+                    snprintf(courseDetails, sizeof(courseDetails), "Course ID: %d, Name: %s, Department: %s\n",
+                             fc.courses[i].courseId, fc.courses[i].courseName, fc.courses[i].department);
+                    
+                    // Send the course details to the client
+                    send(clientSocket, courseDetails, strlen(courseDetails), 0);
+                }
+            }
+            break; // No need to continue searching after finding the faculty
+        }
+    }
+
+    // Close the file
+    close(courseDataFile);
 }

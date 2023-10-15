@@ -146,7 +146,7 @@ int main() {
 
                     switch (facultyChoice) {
                         case 1:
-                            handleViewOfferingCourses(newSocket, username);
+                            handleViewOfferingCourses(newSocket);
                             break;
                         case 2:
                             handleAddCourse(newSocket, username);

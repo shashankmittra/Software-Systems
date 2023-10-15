@@ -47,6 +47,16 @@ typedef struct {
     Course courses[30];
 } Link;
 
+typedef struct {
+    int stud_id;
+    Course courses[30];
+} StudentCourse;
+
+typedef struct {
+    int faculty_id;
+    Course courses[30];
+} FacultyCourse;
+
 void addStudent(int clientSocket) {
     Student newStudent;
     memset(&newStudent, 0, sizeof(Student)); // Initialize the structure
@@ -261,20 +271,39 @@ void modifyFacultyDetails(int serverSocket) {
 
 //----------------------------------Below are the functinalitites related to Faculty-------------------------------//
 
-void viewOfferingCourses(int serverSocket){
+void viewOfferingCourses(int serverSocket, char username[]) {
     char call[5] = "Call";
 
     // Send the signal to the server
     send(serverSocket, call, strlen(call), 0);
-    // Receive a message from the server
-    char response[256];
-    ssize_t bytesRead = recv(serverSocket, response, sizeof(response), 0);
+    printf("Sent the call to the server\n");
+
+    // Send the faculty_id (username) to the server
+    send(serverSocket, username, strlen(username), 0);
+    printf("Sent facultyId\n");
+
+    // Receive course details from the server
+    FacultyCourse facultyCourse;
+    ssize_t bytesRead = recv(serverSocket, &facultyCourse, sizeof(FacultyCourse), 0);
 
     if (bytesRead <= 0) {
-        printf("Error receiving server response.\n");
+        printf("Error receiving course details from the server.\n");
         return;
     }
+
+    // Handle the received course details as needed
+    printf("Received course details for faculty ID: %d\n", facultyCourse.faculty_id);
+    
+    // Print or process course details here
+    printf("Courses offered by faculty ID %d:\n", facultyCourse.faculty_id);
+    for (int i = 0; i < 30; i++) {
+        if (facultyCourse.courses[i].courseId != 0) {
+            printf("Course %d - Name: %s, Department: %s\n", i + 1, facultyCourse.courses[i].courseName, facultyCourse.courses[i].department);
+        }
+    }
 }
+
+
 
 void addNewCourse(int serverSocket){
     Course courses;
@@ -541,12 +570,13 @@ int main() {
                     char choiceStr[10];
                     snprintf(choiceStr, sizeof(choiceStr), "%d", facultyChoice);
                     send(clientSocket, choiceStr, strlen(choiceStr), 0);
+                    printf("Sent choice\n");
                     getchar();
 
                     switch (facultyChoice) {
                         case 1:
                             // Add Student functionality
-                            viewOfferingCourses(clientSocket);
+                            viewOfferingCourses(clientSocket, username);
                             break;
                             
                         case 2:
