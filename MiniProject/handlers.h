@@ -196,6 +196,10 @@ void handleModifyFacultyDeatils(int clientSocket){
 
 }
 
+
+//-------------------------------------Below are the Handler Functions related to Faculty Role-----------------------------------//
+
+
 // Handler function to Add New Course - 
 void handleAddCourse(int newSocket, char username[]){
     char courseData[256];
@@ -261,36 +265,35 @@ void handleAddCourse(int newSocket, char username[]){
 }
 
 void handleViewOfferingCourses(int clientSocket) {
-    char callrecv[10];
-    printf("HEllo\n");
-    ssize_t bytesReceived = recv(clientSocket, callrecv, sizeof(callrecv), 0);
-    printf("YES!\n");
+    char facultyId[256];
+    printf("YES\n");
+    ssize_t bytesReceived = recv(clientSocket, facultyId, sizeof(facultyId), 0);
+    printf("NO\n");
     if (bytesReceived <= 0)
     {
-        printf("Some issue while receiving the signal from the client.\n");
-        // Handle no signal received or client disconnection if needed
+        printf("Error receiving faculty_id from the client.\n");
         return;
     }
-    else if (strncmp(callrecv, "Call", 4) == 0)
-    {
-        // Now we have the received signal to view offering courses
 
-        char facultyId[256];
-        bytesReceived = recv(clientSocket, facultyId, sizeof(facultyId), 0);
+    facultyId[bytesReceived] = '\0'; // Null-terminate the received data
 
-        if (bytesReceived <= 0) {
-            printf("Error receiving faculty_id from the client.\n");
-            // Handle no faculty_id received or client disconnection if needed
-            return;
-        } else {
-            // Now you can call the sendCourseDetails function based on the received faculty_id.
-            sendCourseDetails(clientSocket, facultyId);
-        }
-    }
+    // Now you can call the sendCourseDetails function based on the received faculty_id.
+    sendCourseDetails(clientSocket, facultyId);
 }
 
 
-void handleRemoveCourse(int newSocket){
+void handleRemoveCourse(int clientSocket){
+    int courseId;
+
+    // Receive the course ID from the client
+    ssize_t bytesReceived = recv(clientSocket, &courseId, sizeof(int), 0);
+    if (bytesReceived <= 0) {
+        printf("Error receiving course ID from the client.\n");
+        return;
+    }
+
+    // Attempt to remove the course
+    removeCourse(courseId, clientSocket);
 }
 
 void handleUpdateCourseDetails(int clientSocket){
@@ -313,5 +316,197 @@ void handleUpdateCourseDetails(int clientSocket){
     }
 }
 
-void handleChangeFacultyPass(int newSocket){
+void handleChangeFacultyPass(int clientSocket) {
+    // Receive the username from the client
+    char username[50];
+    ssize_t bytesReceived = recv(clientSocket, username, sizeof(username), 0);
+    if (bytesReceived <= 0) {
+        printf("Error receiving username from the client.\n");
+        return;
+    }
+    username[bytesReceived] = '\0'; // Null-terminate the received data
+
+    // Remove the newline character if it exists
+    size_t usernameLength = strcspn(username, "\n");
+    if (usernameLength < bytesReceived) {
+        username[usernameLength] = '\0';
+    }
+
+    printf("Received username: %s\n", username);
+
+    // Receive the new password from the client
+    char newPassword[50];
+    bytesReceived = recv(clientSocket, newPassword, sizeof(newPassword), 0);
+    printf("UES\n");
+    if (bytesReceived <= 0) {
+        printf("Error receiving new password from the client.\n");
+        return;
+    }
+    printf("Rec\n");
+    newPassword[bytesReceived] = '\0'; // Null-terminate the received data
+
+    char terminationSignal[5];
+    bytesReceived = recv(clientSocket, terminationSignal, sizeof(terminationSignal), 0);
+    printf("YES\n");
+    if (bytesReceived <= 0) {
+        printf("Error receiving termination signal from the client.\n");
+        return;
+    }
+    terminationSignal[bytesReceived] = '\0'; // Null-terminate the received data
+
+    printf("Received username: %s\n", username);
+    printf("Received new password: %s\n", newPassword);
+    printf("Received termination signal: %s\n", terminationSignal);
+
+    if (strcmp(terminationSignal, "Done") != 0) {
+        printf("Invalid termination signal received: %s\n", terminationSignal); // Debug print
+        return;
+    }
+    printf("Success\n");
+
+    // You can use the username and newPassword to update the faculty.txt file here.
+    if (updateFacultyPassword(username, newPassword)) {
+        // Password update was successful, send a success message to the client.
+        send(clientSocket, "Password updated successfully.", sizeof("Password updated successfully."), 0);
+    } else {
+        // Password update failed, send an error message to the client.
+        send(clientSocket, "Password update failed.", sizeof("Password update failed."), 0);
+    }
 }
+
+//---------------------------------------------Below are the handler function related to Students---------------------------------------------//
+
+void handleEnrollNewCourse(int clientSocket){
+    int courseId;
+
+    // Receive the course ID from the client
+    ssize_t bytesReceived = recv(clientSocket, &courseId, sizeof(int), 0);
+    if (bytesReceived <= 0) {
+        printf("Error receiving course ID from the client.\n");
+        return;
+    }
+    
+    char username[50];
+    ssize_t bytesReceived1 = recv(clientSocket, username, sizeof(username), 0);
+    if (bytesReceived1 <= 0) {
+        printf("Error receiving username from the client.\n");
+        return;
+    }
+    username[bytesReceived1] = '\0'; // Null-terminate the received data
+
+    // Remove the newline character if it exists
+    size_t usernameLength = strcspn(username, "\n");
+    if (usernameLength < bytesReceived1) {
+        username[usernameLength] = '\0';
+    }
+
+    printf("Received username: %s\n", username);
+
+    // Attempt to remove the course
+    enrollCourse(courseId, clientSocket, username);
+}
+
+void handleDropCourse(int clientSocket){
+    int courseId;
+
+    // Receive the course ID from the client
+    ssize_t bytesReceived = recv(clientSocket, &courseId, sizeof(int), 0);
+    if (bytesReceived <= 0) {
+        printf("Error receiving course ID from the client.\n");
+        return;
+    }
+    
+    char username[50];
+    ssize_t bytesReceived1 = recv(clientSocket, username, sizeof(username), 0);
+    if (bytesReceived1 <= 0) {
+        printf("Error receiving username from the client.\n");
+        return;
+    }
+    username[bytesReceived1] = '\0'; // Null-terminate the received data
+
+    // Remove the newline character if it exists
+    size_t usernameLength = strcspn(username, "\n");
+    if (usernameLength < bytesReceived1) {
+        username[usernameLength] = '\0';
+    }
+
+    printf("Received username: %s\n", username);
+
+    // Attempt to remove the course
+    dropCourse(courseId, clientSocket, username);
+}
+
+void handleViewEnrolledCourseDetails(int clientSocket){
+    char studId[256];
+    printf("YES\n");
+    ssize_t bytesReceived = recv(clientSocket, studId, sizeof(studId), 0);
+    printf("NO\n");
+    if (bytesReceived <= 0)
+    {
+        printf("Error receiving studId from the client.\n");
+        return;
+    }
+
+    studId[bytesReceived] = '\0'; // Null-terminate the received data
+
+    // Now you can call the sendCourseDetails function based on the received faculty_id.
+    sendStudentCourseDetails(clientSocket, studId);
+}
+
+void handleChangeStudentPass(int clientSocket) {
+    // Receive the username from the client
+    char username[50];
+    ssize_t bytesReceived = recv(clientSocket, username, sizeof(username), 0);
+
+    if (bytesReceived <= 0) {
+        printf("Error receiving username from the client.\n");
+        return;
+    }
+
+    // Remove the newline character if it exists
+    size_t usernameLength = strcspn(username, "\n");
+    if (usernameLength < bytesReceived) {
+        username[usernameLength] = '\0';
+    }
+
+    // Receive the new password from the client
+    char newPassword[50];
+    bytesReceived = recv(clientSocket, newPassword, sizeof(newPassword), 0);
+
+    if (bytesReceived <= 0) {
+        printf("Error receiving new password from the client.\n");
+        return;
+    }
+
+    // Remove the newline character if it exists
+    size_t newPasswordLength = strcspn(newPassword, "\n");
+    if (newPasswordLength < bytesReceived) {
+        newPassword[newPasswordLength] = '\0';
+    }
+
+    char terminationSignal[5];
+    bytesReceived = recv(clientSocket, terminationSignal, sizeof(terminationSignal), 0);
+
+    if (bytesReceived <= 0) {
+        printf("Error receiving termination signal from the client.\n");
+        return;
+    }
+
+    // Check the termination signal
+    terminationSignal[bytesReceived] = '\0';
+    if (strcmp(terminationSignal, "Done") != 0) {
+        printf("Invalid termination signal received: %s\n", terminationSignal);
+        return;
+    }
+
+    // Update the student password and respond to the client
+    if (updateStudentPassword(username, newPassword)) {
+        // Password update was successful, send a success message to the client.
+        send(clientSocket, "Password updated successfully.", sizeof("Password updated successfully."), 0);
+    } else {
+        // Password update failed, send an error message to the client.
+        send(clientSocket, "Password update failed.", sizeof("Password update failed."), 0);
+    }
+}
+
+

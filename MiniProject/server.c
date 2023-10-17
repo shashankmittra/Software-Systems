@@ -53,53 +53,74 @@ int main() {
         newSocket = accept(serverSocket, (struct sockaddr*)&newAddr, &addrSize);
         if (newSocket < 0) {
             perror("Error in accepting connection");
-            continue;
+            exit(1);
         }
 
-        // Code for Authentication :-> 
+        if(fork() == 0){
+        // Code for Authentication :->
+            close(serverSocket);
 
-        memset(username, 0, sizeof(username));
-        memset(password, 0, sizeof(password));
-        memset(userRole, 0, sizeof(userRole));
+            memset(username, 0, sizeof(username));
+            memset(password, 0, sizeof(password));
+            memset(userRole, 0, sizeof(userRole));
 
-        // Receive the username, password, and userRole from the client
-        recv(newSocket, userRole, sizeof(userRole), 0);
-        //printf("UserRole received\n");
-        recv(newSocket, username, sizeof(username), 0);
-        //printf("Username received\n");
-        recv(newSocket, password, sizeof(password), 0);
-        //printf("Password received\n");
+            // Receive the username, password, and userRole from the client
+            recv(newSocket, userRole, sizeof(userRole), 0);
+            // printf("UserRole received\n");
+            recv(newSocket, username, sizeof(username), 0);
+            // printf("Username received\n");
+            recv(newSocket, password, sizeof(password), 0);
+            // printf("Password received\n");
 
-        // Remove trailing newline characters
-        username[strcspn(username, "\n")] = '\0';
-        password[strcspn(password, "\n")] = '\0';
-        userRole[strcspn(userRole, "\n")] = '\0';
+            // Remove trailing newline characters
+            username[strcspn(username, "\n")] = '\0';
+            password[strcspn(password, "\n")] = '\0';
+            userRole[strcspn(userRole, "\n")] = '\0';
 
-        // converting role to integer value ->
-        int role = atoi(userRole);
-        printf("completed conversion\n");
+            // converting role to integer value ->
+            int role = atoi(userRole);
+            printf("completed conversion\n");
 
-        // Authenticate the user and get their role
-        if (authenticate(username, password, role)) {
-            printf("Authentication successful. User role: %d\n", role);
+            // Authenticate the user and get their role
+            if (authenticate(username, password, role))
+            {
+                printf("Authentication successful. User role: %d\n", role);
 
-            // Notify the client about successful authentication
-            send(newSocket, "Authenticated", sizeof("Authenticated"), 0);
+                // Notify the client about successful authentication
+                send(newSocket, "Authenticated", sizeof("Authenticated"), 0);
 
-            // If the user is an Admin (role == 1), display the menu
-            if (role == 1) {
+                // If the user is an Admin (role == 1), display the menu
+                if (role == 1)
+                {
 
-                char choiceStr[10];
-                ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
+                    char adminMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
+                                        "                             1. Add Student\n"
+                                        "                             2. View Student Details\n"
+                                        "                             3. Add Faculty\n"
+                                        "                             4. View Faculty Details\n"
+                                        "                             5. Modify Student Details\n"
+                                        "                             6. Modify Faculty Details\n"
+                                        "                             7. Logout and Exit\n"
+                                        "Enter your choice: ";
+                    
+                
+                    send(newSocket, adminMenu, sizeof(adminMenu), 0);
 
-                if (bytesReceived <= 0) {
-                    printf("Client disconnected or error while receiving choice.\n");
-                    // Handle disconnection or error if needed
-                } else {
-                    // Convert the received choice to an integer
-                    int adminChoice = atoi(choiceStr);
+                    char choiceStr[10];
+                    ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
 
-                    switch (adminChoice) {
+                    if (bytesReceived <= 0)
+                    {
+                        printf("Client disconnected or error while receiving choice.\n");
+                        // Handle disconnection or error if needed
+                    }
+                    else
+                    {
+                        // Convert the received choice to an integer
+                        int adminChoice = atoi(choiceStr);
+
+                        switch (adminChoice)
+                        {
                         case 1:
                             handleAddStudent(newSocket);
                             break;
@@ -133,6 +154,17 @@ int main() {
             
             // Below is the code to handle faculty menu options
             if (role == 2) {
+
+                char facultyMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
+                                        "                             1. View Offering Course\n"
+                                        "                             2. Add new Course\n"
+                                        "                             3. Remove courses from the Catalog\n"
+                                        "                             4. Update Course Details\n"
+                                        "                             5. Change Password\n"
+                                        "                             6. Logout and Exit\n"
+                                        "Enter your choice: ";
+
+                send(newSocket, facultyMenu, sizeof(facultyMenu), 0);
 
                 char choiceStr[10];
                 ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
@@ -175,6 +207,16 @@ int main() {
             // Below is the code to handle the students -> 
             if (role == 3) {
 
+                char studentMenu[] = "\n----------------------------- Welcome to Student Menu ------------------------------\n"
+                                        "                             1. View All Courses\n"
+                                        "                             2. Enroll in a New Course\n"
+                                        "                             3. Drop a Course\n"
+                                        "                             4. View Enrolled Course Details\n"
+                                        "                             5. Change Password\n"
+                                        "                             6. Logout and Exit\n"
+                                        "Enter your choice: ";
+                send(newSocket, studentMenu, sizeof(studentMenu), 0);
+
                 char choiceStr[10];
                 ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
 
@@ -187,25 +229,21 @@ int main() {
 
                     switch (studentChoice) {
                         case 1:
-                            handleAddStudent(newSocket);
+                            sendCourseData(newSocket);
                             break;
                         case 2:
-                            handleViewStudDeatils(newSocket);
+                            handleEnrollNewCourse(newSocket);
                             break;
                         case 3:
-                            handleAddFaculty(newSocket);
+                            handleDropCourse(newSocket);
                             break;
                         case 4:
-                            handleViewFacultyDeatils(newSocket);
+                            handleViewEnrolledCourseDetails(newSocket);
                             break;
                         case 5:
-                            handleModifyStudentDetails(newSocket);
+                            handleChangeStudentPass(newSocket);
                             break;
                         case 6:
-                            handleModifyFacultyDeatils(newSocket);
-                            break;
-                        case 7:
-                            // Handle Exit functionality
                             printf("Student session ended.\n");
                             close(newSocket);
                             return 0;
@@ -221,22 +259,11 @@ int main() {
             // Inform the client about authentication failure
             send(newSocket, "Authentication failed. Invalid username or password.", strlen("Authentication failed. Invalid username or password."), 0);
         }
-
-        // Implement communication with the client using system calls
-        while (1) {
-            memset(buffer, 0, sizeof(buffer));
-            int bytesRead = read(newSocket, buffer, sizeof(buffer));
-            if (bytesRead <= 0) {
-                break; // Client disconnected or error
-            }
-
-            // Process the client's request and send responses using system calls
-            // Implement your logic here
-
-            write(newSocket, "Response from server", strlen("Response from server"));
+        exit(0);
         }
-
-        close(newSocket);
+        else{
+            close(newSocket);
+        }
     }
 
     close(serverSocket);

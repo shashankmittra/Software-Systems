@@ -6,11 +6,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <ctype.h>
 
 // Setting the port to be 8080
 // Can check the available ports using - lsof -i -n -P | grep TCP command 
 #define PORT 8080
 #define MAX_CLIENTS 5
+#define MAX_COURSES_PER_STUDENT 30
 
 // Define file paths for user and course data
 const char* userFile = "users.txt";
@@ -23,7 +25,7 @@ typedef struct {
     char login_id[50];
     char password[50];
     char name[20];
-    int age;
+    int age; 
     char email_id[30];
     char address[100];
     int stud_id;

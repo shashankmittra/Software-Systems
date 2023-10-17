@@ -2,8 +2,7 @@
 ============================================================================
 Name : 17.a
 Author : Shashank Mittra
-Description : Write a program to send and receive data from parent to child vice versa. Use two way
-communication.
+Description : 17. Write a program to execute ls -l | wc.    a. use dup    b. use dup2    c. use fcntl
 Date: 3rd Oct, 2023.
 ============================================================================
 */

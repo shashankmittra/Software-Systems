@@ -5,7 +5,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <termios.h>
 
+#define MAX_PASSWORD_LENGTH 100
 #define PORT 8080
 char buffer[1024];
 
@@ -272,17 +274,10 @@ void modifyFacultyDetails(int serverSocket) {
 //----------------------------------Below are the functinalitites related to Faculty-------------------------------//
 
 void viewOfferingCourses(int serverSocket, char username[]) {
-    char call[5] = "Call";
-
-    // Send the signal to the server
-    send(serverSocket, call, strlen(call), 0);
-    printf("Sent the call to the server\n");
-
     // Send the faculty_id (username) to the server
     send(serverSocket, username, strlen(username), 0);
-    printf("Sent facultyId\n");
 
-    // Receive course details from the server
+    // Receive and process course details from the server
     FacultyCourse facultyCourse;
     ssize_t bytesRead = recv(serverSocket, &facultyCourse, sizeof(FacultyCourse), 0);
 
@@ -291,18 +286,16 @@ void viewOfferingCourses(int serverSocket, char username[]) {
         return;
     }
 
-    // Handle the received course details as needed
     printf("Received course details for faculty ID: %d\n", facultyCourse.faculty_id);
-    
+
     // Print or process course details here
     printf("Courses offered by faculty ID %d:\n", facultyCourse.faculty_id);
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 1; i++) { // Iterate through all possible courses
         if (facultyCourse.courses[i].courseId != 0) {
             printf("Course %d - Name: %s, Department: %s\n", i + 1, facultyCourse.courses[i].courseName, facultyCourse.courses[i].department);
         }
     }
 }
-
 
 
 void addNewCourse(int serverSocket){
@@ -346,7 +339,29 @@ void addNewCourse(int serverSocket){
 }
 
 void removeCourse(int serverSocket){
+    int courseId;
     
+    // Prompt the user to enter the course ID to delete
+    printf("Enter the course ID to delete: ");
+    if (scanf("%d", &courseId) != 1) {
+        printf("Invalid input. Please enter a valid course ID.\n");
+        return;
+    }
+    
+    // Send the course ID to the server for removal
+    send(serverSocket, &courseId, sizeof(int), 0);
+
+    char responseMessage[256];
+    ssize_t bytesRead = recv(serverSocket, responseMessage, sizeof(responseMessage), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+    } else {
+        printf("Server response: %s\n", responseMessage);
+    }
+
+    // Close the server socket and perform any other necessary cleanup
+    close(serverSocket);
 }
 
 void updateCourseDetails(int serverSocket) {
@@ -408,39 +423,212 @@ void updateCourseDetails(int serverSocket) {
     }
 }
 
+void changeFacultyPassword(int serverSocket, char username[]) {
+    char newPassword[50];
 
-void changeFacultyPass(int serverSocket){
+    // Send the username to the server
+    printf("Username: %s\n", username);
+    send(serverSocket, username, strlen(username), 0);
+
+    // Prompt the user for the new password
+    printf("Enter the new password: ");
+    fgets(newPassword, sizeof(newPassword), stdin);
+
+    // Remove the newline character from the input
+    newPassword[strcspn(newPassword, "\n")] = '\0';
+
+    // Send the new password to the server
+    send(serverSocket, newPassword, strlen(newPassword), 0);
     
+    char terminationSignal[5] = "Done";
+    send(serverSocket, terminationSignal, strlen(terminationSignal), 0);
+
+    // Handle the server response
+    char response[256];
+    ssize_t bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+    } else {
+        printf("Server response: %s\n", response);
+    }
 }
+
+
 
 //----------------------------------Below are the functinalitites related to Student-------------------------------//
 
 void viewAllCourses(int serverSocket){
+    const char* request = "ViewAllCourses";
+    send(serverSocket, request, strlen(request), 0);
 
+    // Receive and print course data from the server
+    while (1) {
+        Course course;
+        ssize_t bytesRead = recv(serverSocket, &course, sizeof(Course), 0);
+        if (bytesRead <= 0) {
+            break; // End of course data
+        }
+        if (memcmp(&course, &(Course){0}, sizeof(Course)) == 0) {
+            break; // End marker received
+        }
+        printf("Course: %s\n", course.courseName);
+        // You can access other course fields as needed
+    }
 }
 
-void enrollNewCourse(int serverSocket){
+void enrollNewCourse(int serverSocket, char username[]){
+    int courseId;
     
-}
-
-void dropCourse(int serverSocket){
+    // Prompt the user to enter the course ID to enroll into
+    printf("Enter the course ID that you want to enroll into : ");
+    if (scanf("%d", &courseId) != 1) {
+        printf("Invalid input. Please enter a valid course ID.\n");
+        return;
+    }
     
+    // Send the course ID to the server for removal
+    send(serverSocket, &courseId, sizeof(int), 0);
+
+    printf("Username: %s\n", username);
+    send(serverSocket, username, strlen(username), 0);
+
+    char responseMessage[256];
+    ssize_t bytesRead = recv(serverSocket, responseMessage, sizeof(responseMessage), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+    } else {
+        printf("Server response: %s\n", responseMessage);
+    }
+
+    // Close the server socket and perform any other necessary cleanup
+    close(serverSocket);
 }
 
-void viewEnrolledCourseDetails(int serverSocket){
+void dropCourse(int serverSocket, char username[]){
+    int courseId;
     
-}
-
-void changeStudentPass(int serverSocket){
+    // Prompt the user to enter the course ID to drop from
+    printf("Enter the course ID that you want to drop from : ");
+    if (scanf("%d", &courseId) != 1) {
+        printf("Invalid input. Please enter a valid course ID.\n");
+        return;
+    }
     
+    // Send the course ID to the server for removal
+    send(serverSocket, &courseId, sizeof(int), 0);
+
+    printf("Username: %s\n", username);
+    send(serverSocket, username, strlen(username), 0);
+
+    char responseMessage[256];
+    ssize_t bytesRead = recv(serverSocket, responseMessage, sizeof(responseMessage), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+    } else {
+        printf("Server response: %s\n", responseMessage);
+    }
+
+    // Close the server socket and perform any other necessary cleanup
+    close(serverSocket);
 }
 
+void viewEnrolledCourseDetails(int serverSocket, char username[]){
+    send(serverSocket, username, strlen(username), 0);
+
+    // Receive and process course details from the server
+    StudentCourse studentCourse;
+    ssize_t bytesRead = recv(serverSocket, &studentCourse, sizeof(StudentCourse), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving course details from the server.\n");
+        return;
+    }
+
+    printf("Received course details for Student ID: %d\n", studentCourse.stud_id);
+
+    // Print or process course details here
+    printf("Courses enrolled by stud_id - %d:\n", studentCourse.stud_id);
+    for (int i = 0; i < 1; i++) { // Iterate through all possible courses
+        if (studentCourse.courses[i].courseId != 0) {
+            printf("Course %d - Name: %s, Department: %s\n", i + 1, studentCourse.courses[i].courseName, studentCourse.courses[i].department);
+            printf("Total Seats: %d\n", studentCourse.courses[i].totalseats);
+            printf("Available Seats: %d\n", studentCourse.courses[i].availableSeats);
+            printf("Credits: %d\n", studentCourse.courses[i].credits);
+        }
+    }
+}
+
+void changeStudentPassword(int serverSocket, char username[]) {
+    char newPassword[50];
+
+    // Send the username to the server
+    printf("Username: %s\n", username);
+    send(serverSocket, username, strlen(username), 0);
+
+    // Prompt the user for the new password
+    printf("Enter the new password: ");
+    fgets(newPassword, sizeof(newPassword), stdin);
+
+    // Remove the newline character from the input
+    newPassword[strcspn(newPassword, "\n")] = '\0';
+
+    // Send the new password to the server
+    send(serverSocket, newPassword, strlen(newPassword), 0);
+    
+    char terminationSignal[5] = "Done";
+    send(serverSocket, terminationSignal, strlen(terminationSignal), 0);
+
+    // Handle the server response
+    char response[256];
+    ssize_t bytesRead = recv(serverSocket, response, sizeof(response), 0);
+
+    if (bytesRead <= 0) {
+        printf("Error receiving server response.\n");
+    } else {
+        printf("Server response: %s\n", response);
+    }
+}
+
+char *readPassword() {
+    struct termios oldt, newt;
+    char *password = (char *)malloc(MAX_PASSWORD_LENGTH);
+    if (password == NULL) {
+        perror("Memory allocation failed");
+        exit(1);
+    }
+
+    // Disable echoing of characters
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~ECHO;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Read the password
+    if (fgets(password, MAX_PASSWORD_LENGTH, stdin) == NULL) {
+        perror("Error reading password");
+        exit(1);
+    }
+
+    // Remove the newline character
+    char *newline = strchr(password, '\n');
+    if (newline != NULL) {
+        *newline = '\0';
+    }
+
+    // Restore the terminal settings
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+
+    return password;
+}
 
 int main() {
     int clientSocket;
     struct sockaddr_in serverAddr;
     char username[100];
-    char password[100];
+    //char password[100];
     char userRole[10]; // Change the size as needed
 
     // Create socket
@@ -475,8 +663,13 @@ int main() {
 
         // Getting user input and send requests to the server
         printf("Login Type ->\n");
-        printf("Enter role (1 for Admin, 2 for Faculty, 3 for Student): ");
+        printf("Enter role 1) for Admin, 2) for Faculty, 3) for Student): 4) Exit the system\n");
         fgets(userRole, sizeof(userRole), stdin);
+
+        if(atoi(userRole) == 4){
+            printf("Thank You for using the Course Regsitration Portal\n");
+            break;
+        }
 
         // Sending the userRole to the server ->
         write(clientSocket, userRole, strlen(userRole));
@@ -486,11 +679,10 @@ int main() {
         // Sending the username to the server ->
         write(clientSocket, username, strlen(username));
         printf("Enter password -> ");
-        fgets(password, sizeof(password), stdin);
-
+        //fgets(password, sizeof(password), stdin);
+        char *password = readPassword();
         // Sending the password to the server ->
         write(clientSocket, password, strlen(password));
-
         // Recivig the authentication information based on the server
         memset(buffer, 0, sizeof(buffer));
         recv(clientSocket, buffer, sizeof(buffer), 0);
@@ -499,14 +691,11 @@ int main() {
             if (atoi(userRole) == 1) {
                 // Collect student data from the client
                 while(1){
-                    printf("------------Welcome to Admin Menu-----------\n");
-                    printf("1.) Add Student\n");
-                    printf("2.) View Student Details\n");
-                    printf("3.) Add Faculty\n");
-                    printf("4.) View Faculty Details\n");
-                    printf("5.) Modify Student Details\n");
-                    printf("6.) Modify Faculty Details\n");
-                    printf("7.) Logout and Exit\n");
+                    
+                    memset(buffer, 0, sizeof(buffer));
+                    recv(clientSocket, buffer, sizeof(buffer), 0);
+                    printf("%s\n", buffer);  // Display the received menu
+
 
                     int adminChoice;
                     scanf("%d", &adminChoice);
@@ -549,6 +738,11 @@ int main() {
 
                         default:
                             printf("Invalid choice. Please try again.\n");
+                            close(clientSocket);
+                            break;
+                    }
+
+                    if(adminChoice == 7){
                             break;
                     }
                 }
@@ -557,20 +751,16 @@ int main() {
             // When user role == 2 Then the user is a Faculty - 
             else if(atoi(userRole) == 2){
                 while(1){
-                    printf("------------Welcome to Faculty Menu-----------\n");
-                    printf("1.) View Offering Course\n");
-                    printf("2.) Add new Course\n");
-                    printf("3.) Remove courses from the Catalog\n");
-                    printf("4.) Update Course Details\n");
-                    printf("5.) Change Password\n");
-                    printf("6.) Logout and Exit\n");
+                    
+                    memset(buffer, 0, sizeof(buffer));
+                    recv(clientSocket, buffer, sizeof(buffer), 0);
+                    printf("%s\n", buffer);  // Display the received menu
 
                     int facultyChoice;
                     scanf("%d", &facultyChoice);
                     char choiceStr[10];
                     snprintf(choiceStr, sizeof(choiceStr), "%d", facultyChoice);
                     send(clientSocket, choiceStr, strlen(choiceStr), 0);
-                    printf("Sent choice\n");
                     getchar();
 
                     switch (facultyChoice) {
@@ -592,7 +782,7 @@ int main() {
                             break;
                         
                         case 5:
-                            changeFacultyPass(clientSocket);
+                            changeFacultyPassword(clientSocket, username);
                             break;
                             
                         case 6:
@@ -603,6 +793,11 @@ int main() {
 
                         default:
                             printf("Invalid choice. Please try again.\n");
+                            close(clientSocket);
+                            break;
+                    }
+
+                    if(facultyChoice == 6){
                             break;
                     }
                 }
@@ -612,13 +807,10 @@ int main() {
             // When user role == 3 Then the user is a student - 
             else if(atoi(userRole) == 3){
                 while(1){
-                    printf("------------Welcome to Student Menu-----------\n");
-                    printf("1.) View All Course\n");
-                    printf("2.) Enroll new Course\n");
-                    printf("3.) Drop Course\n");
-                    printf("4.) View Enrolled Course Details\n");
-                    printf("5.) Change Password\n");
-                    printf("6.) Logout and Exit\n");
+
+                    memset(buffer, 0, sizeof(buffer));
+                    recv(clientSocket, buffer, sizeof(buffer), 0);
+                    printf("%s\n", buffer);  // Display the received menu
 
                     int studChoice;
                     scanf("%d", &studChoice);
@@ -634,19 +826,19 @@ int main() {
                             break;
                             
                         case 2:
-                            enrollNewCourse(clientSocket);
+                            enrollNewCourse(clientSocket, username);
                             break;
 
                         case 3:
-                            dropCourse(clientSocket);
+                            dropCourse(clientSocket, username);
                             break;
 
                         case 4:
-                            viewEnrolledCourseDetails(clientSocket);
+                            viewEnrolledCourseDetails(clientSocket, username);
                             break;
                         
                         case 5:
-                            changeStudentPass(clientSocket);
+                            changeStudentPassword(clientSocket, username);
                             break;
                             
                         case 6:
@@ -657,6 +849,11 @@ int main() {
 
                         default:
                             printf("Invalid choice. Please try again.\n");
+                            close(clientSocket);
+                            break;
+                    }
+
+                    if(studChoice == 6){
                             break;
                     }
                 }
@@ -665,18 +862,7 @@ int main() {
         else {
             printf("Authentication failed. Invalid username or password.\n");
         }
-
-        // Receive and process responses from the server using system calls
-        memset(buffer, 0, sizeof(buffer));
-        int bytesRead = read(clientSocket, buffer, sizeof(buffer));
-        if (bytesRead <= 0) {
-            break; // Server disconnected or error
-        }
-
-        // Process and display the server's response
-        printf("Server response: %s\n", buffer);
     }
-
     close(clientSocket);
     return 0;
 }

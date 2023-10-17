@@ -2,7 +2,7 @@
 ============================================================================
 Name : 21a.c
 Author : Shashank Mittra
-Description :  Write two programs so that both can communicate by FIFO -Use one way communications. 
+Description :  Write two programs so that both can communicate by FIFO -Use two way communications. 
 Date: 6th Oct, 2023.
 ============================================================================
 */

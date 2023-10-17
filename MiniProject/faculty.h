@@ -179,3 +179,71 @@ void sendFacultyDetailsByFacutyId(int clientSocket, int faculty_id) {
         send(clientSocket, &notFoundFaculty, sizeof(Faculty), 0);
     }
 }
+
+int updateFacultyPassword(const char username[], const char newPassword[]) {
+    FILE* facultyFile = fopen("faculty.txt", "r+");
+    if (facultyFile == NULL) {
+        perror("Error opening faculty data file");
+        return 0; // Failed to open the file
+    }
+
+    char line[256];
+    char updatedData[256];
+    int passwordUpdated = 0; // Flag to check if the password has been updated
+
+    // Create a temporary file to write the updated data
+    FILE* tempFile = fopen("tempfaculty.txt", "w");
+    if (tempFile == NULL) {
+        perror("Error creating temporary faculty file");
+        fclose(facultyFile);
+        return 0; // Failed to create the temporary file
+    }
+
+    while (fgets(line, sizeof(line), facultyFile) != NULL) {
+        char* token = strtok(line, "$");
+        if (token) {
+            // Trim any leading or trailing whitespace from the token (username)
+            char trimmedToken[256];
+            strcpy(trimmedToken, token);
+
+            // Remove leading and trailing spaces from the trimmed token
+            char* start = trimmedToken;
+            char* end = trimmedToken + strlen(trimmedToken) - 1;
+            while (start <= end && isspace((unsigned char)*start)) {
+                start++;
+            }
+            while (end > start && isspace((unsigned char)*end)) {
+                end--;
+            }
+            end[1] = '\0';
+
+            if (strcmp(trimmedToken, username) == 0) {
+                // Found the faculty with the matching username, update the password
+                fprintf(tempFile, "%s$%s$%s$%s$%s$%s$%s\n",
+                        trimmedToken, newPassword, strtok(NULL, "$"),
+                        strtok(NULL, "$"), strtok(NULL, "$"),
+                        strtok(NULL, "$"), strtok(NULL, "$"));
+                passwordUpdated = 1;
+            } else {
+                // If it's not the user to update, write the existing line to the temp file
+                fputs(line, tempFile);
+            }
+        }
+    }
+
+    fclose(facultyFile);
+    fclose(tempFile);
+
+    if (!passwordUpdated) {
+        printf("Faculty not found.\n");
+        remove("tempfaculty.txt"); // Remove the temporary file if the password was not updated
+    } else {
+        // Replace the original faculty.txt file with the updated data
+        if (rename("tempfaculty.txt", "faculty.txt") != 0) {
+            perror("Error updating faculty file");
+        }
+    }
+
+    return passwordUpdated;
+}
+

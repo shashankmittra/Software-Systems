@@ -46,7 +46,7 @@ int authenticate(const char* username, const char* password, int role) {
     return isAuthenticated;
     }
 
-    if(role == 2){
+    else if(role == 2){
         int facultyDataFile = open("faculty.txt", O_RDONLY);
         if (facultyDataFile == -1) {
             perror("Error opening faculty data file");
@@ -106,7 +106,7 @@ int authenticate(const char* username, const char* password, int role) {
             close(facultyDataFile);
             return isAuthenticated;
     }
-    else{
+    else if(role == 3){
         int studentDataFile = open("student.txt", O_RDONLY);
         if (studentDataFile == -1) {
             perror("Error opening student data file");
