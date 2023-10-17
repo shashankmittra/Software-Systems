@@ -107,60 +107,44 @@ int authenticate(const char* username, const char* password, int role) {
             return isAuthenticated;
     }
     else if(role == 3){
-        int studentDataFile = open("student.txt", O_RDONLY);
-        if (studentDataFile == -1) {
+        int studentFile = open("student.txt", O_RDONLY);
+        if (studentFile == -1) {
             perror("Error opening student data file");
             return 0;
         }
 
-        Student student;
-        int isAuthenticated = 0; // Flag to track if authentication is successful
         char line[256];
-        ssize_t bytesRead;
+        char buffer[256];
+        int bytesRead;
+        int lineIndex = 0;
+        int isAuthenticated = 0;
 
-        while ((bytesRead = read(studentDataFile, line, sizeof(line))) > 0) {
-            // Null-terminate the strings
-            char* token = strtok(line, "$");
-            Student student;
+        while ((bytesRead = read(studentFile, buffer, sizeof(buffer))) > 0) {
+            for (int i = 0; i < bytesRead; i++) {
+                if (lineIndex < sizeof(line) - 1) {
+                    line[lineIndex++] = buffer[i];
 
-            // Initialize the student structure
-            memset(&student, 0, sizeof(Student));
+                    if (buffer[i] == '\n') {
+                        line[lineIndex] = '\0'; // Null-terminate the line
+                        lineIndex = 0; // Reset the line index
 
-            // Extract and fill the fields of the student structure
-                if (token) {
-                    strncpy(student.login_id, token, sizeof(student.login_id));
-                    token = strtok(NULL, "$");
-                }
-                if (token) {
-                    strncpy(student.password, token, sizeof(student.password));
-                    token = strtok(NULL, "$");
-                }
-                if (token) {
-                    strncpy(student.name, token, sizeof(student.name));
-                    token = strtok(NULL, "$");
-                }
-                if (token) {
-                    student.age = atoi(token);
-                    token = strtok(NULL, "$");
-                }
-                if (token) {
-                    strncpy(student.email_id, token, sizeof(student.email_id));
-                    token = strtok(NULL, "$");
-                }
-                if (token) {
-                    strncpy(student.address, token, sizeof(student.address));
-                    token = strtok(NULL, "$");
-                }
-                if (token) {
-                    student.stud_id = atoi(token);
-                }
-                if(strcmp(student.login_id, username) == 0 && strcmp(student.password, password) == 0){
-                    isAuthenticated = 1;
-                    break;
+                        Student student;
+                        if (sscanf(line, "%49[^$]$%49[^$]$%19[^$]$%d$%49[^$]$%99[^$]$%d",
+                                student.login_id, student.password, student.name,
+                                &student.age, student.email_id, student.address, &student.stud_id) == 7) {
+                            // Check if the username and password match
+                            if (strcmp(student.login_id, username) == 0 && strcmp(student.password, password) == 0) {
+                                isAuthenticated = 1;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
-            close(studentDataFile);
-            return isAuthenticated;
+        }
+
+        close(studentFile);
+        return isAuthenticated;
     }
     return 0;
 }

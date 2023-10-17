@@ -13,6 +13,7 @@
 #define PORT 8080
 #define MAX_CLIENTS 5
 #define MAX_COURSES_PER_STUDENT 30
+#define MAX_LINE_LENGTH 256
 
 // Define file paths for user and course data
 const char* userFile = "users.txt";

@@ -90,170 +90,168 @@ int main() {
                 send(newSocket, "Authenticated", sizeof("Authenticated"), 0);
 
                 // If the user is an Admin (role == 1), display the menu
-                if (role == 1)
-                {
+                while(1){
+                    if (role == 1)
+                    {
 
-                    char adminMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
-                                        "                             1. Add Student\n"
-                                        "                             2. View Student Details\n"
-                                        "                             3. Add Faculty\n"
-                                        "                             4. View Faculty Details\n"
-                                        "                             5. Modify Student Details\n"
-                                        "                             6. Modify Faculty Details\n"
-                                        "                             7. Logout and Exit\n"
-                                        "Enter your choice: ";
+                        char adminMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
+                                            "                             1. Add Student\n"
+                                            "                             2. View Student Details\n"
+                                            "                             3. Add Faculty\n"
+                                            "                             4. View Faculty Details\n"
+                                            "                             5. Modify Student Details\n"
+                                            "                             6. Modify Faculty Details\n"
+                                            "                             7. Logout and Exit\n"
+                                            "Enter your choice: ";
+                        
                     
+                        send(newSocket, adminMenu, sizeof(adminMenu), 0);
+
+                        char choiceStr[10];
+                        ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
+
+                        if (bytesReceived <= 0)
+                        {
+                            printf("Client disconnected or error while receiving choice.\n");
+                            // Handle disconnection or error if needed
+                        }
+                        else
+                        {
+                            // Convert the received choice to an integer
+                            int adminChoice = atoi(choiceStr);
+
+                            switch (adminChoice)
+                            {
+                            case 1:
+                                handleAddStudent(newSocket);
+                                break;
+                            case 2:
+                                handleViewStudDeatils(newSocket);
+                                break;
+                            case 3:
+                                handleAddFaculty(newSocket);
+                                break;
+                            case 4:
+                                handleViewFacultyDeatils(newSocket);
+                                break;
+                            case 5:
+                                handleModifyStudentDetails(newSocket);
+                                break;
+                            case 6:
+                                handleModifyFacultyDeatils(newSocket);
+                                break;
+                            case 7:
+                                // Handle Exit functionality
+                                printf("Admin session ended.\n");
+                                close(newSocket);
+                                return 0;
+                            default:
+                                printf("Invalid choice received from the client.\n");
+                                // Handle invalid choice if needed
+                                break;
+                        }
+                        if(adminChoice == 7)
+                            break;
+                    }
+                }
                 
-                    send(newSocket, adminMenu, sizeof(adminMenu), 0);
+                // Below is the code to handle faculty menu options
+                if (role == 2) {
+
+                    char facultyMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
+                                            "                             1. View Offering Course\n"
+                                            "                             2. Add new Course\n"
+                                            "                             3. Remove courses from the Catalog\n"
+                                            "                             4. Update Course Details\n"
+                                            "                             5. Change Password\n"
+                                            "                             6. Logout and Exit\n"
+                                            "Enter your choice: ";
+
+                    send(newSocket, facultyMenu, sizeof(facultyMenu), 0);
 
                     char choiceStr[10];
                     ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
 
-                    if (bytesReceived <= 0)
-                    {
+                    if (bytesReceived <= 0) {
                         printf("Client disconnected or error while receiving choice.\n");
                         // Handle disconnection or error if needed
-                    }
-                    else
-                    {
+                    } else {
                         // Convert the received choice to an integer
-                        int adminChoice = atoi(choiceStr);
+                        int facultyChoice = atoi(choiceStr);
 
-                        switch (adminChoice)
-                        {
-                        case 1:
-                            handleAddStudent(newSocket);
-                            break;
-                        case 2:
-                            handleViewStudDeatils(newSocket);
-                            break;
-                        case 3:
-                            handleAddFaculty(newSocket);
-                            break;
-                        case 4:
-                            handleViewFacultyDeatils(newSocket);
-                            break;
-                        case 5:
-                            handleModifyStudentDetails(newSocket);
-                            break;
-                        case 6:
-                            handleModifyFacultyDeatils(newSocket);
-                            break;
-                        case 7:
-                            // Handle Exit functionality
-                            printf("Admin session ended.\n");
-                            close(newSocket);
-                            return 0;
-                        default:
-                            printf("Invalid choice received from the client.\n");
-                            // Handle invalid choice if needed
-                            break;
+                        switch (facultyChoice) {
+                            case 1:
+                                handleViewOfferingCourses(newSocket);
+                                break;
+                            case 2:
+                                handleAddCourse(newSocket, username);
+                                break;
+                            case 3:
+                                handleRemoveCourse(newSocket);
+                                break;
+                            case 4:
+                                handleUpdateCourseDetails(newSocket);
+                                break;
+                            case 5:
+                                handleChangeFacultyPass(newSocket);
+                                break;
+                            case 6:
+                                printf("Faculty session ended.\n");
+                                close(newSocket);
+                                return 0;
+                            default:
+                                printf("Invalid choice received from the client.\n");
+                                // Handle invalid choice if needed
+                                break;
+                        }
+                        if(facultyChoice == 6)
+                                break;
                     }
                 }
-            }
-            
-            // Below is the code to handle faculty menu options
-            if (role == 2) {
 
-                char facultyMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
-                                        "                             1. View Offering Course\n"
-                                        "                             2. Add new Course\n"
-                                        "                             3. Remove courses from the Catalog\n"
-                                        "                             4. Update Course Details\n"
-                                        "                             5. Change Password\n"
-                                        "                             6. Logout and Exit\n"
-                                        "Enter your choice: ";
+                // Below is the code to handle the students -> 
+                if (role == 3) {
 
-                send(newSocket, facultyMenu, sizeof(facultyMenu), 0);
+                    char choiceStr[10];
+                    ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
 
-                char choiceStr[10];
-                ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
+                    if (bytesReceived <= 0) {
+                        printf("Client disconnected or error while receiving choice.\n");
+                        // Handle disconnection or error if needed
+                    } else {
+                        // Convert the received choice to an integer
+                        int studentChoice = atoi(choiceStr);
 
-                if (bytesReceived <= 0) {
-                    printf("Client disconnected or error while receiving choice.\n");
-                    // Handle disconnection or error if needed
-                } else {
-                    // Convert the received choice to an integer
-                    int facultyChoice = atoi(choiceStr);
-
-                    switch (facultyChoice) {
-                        case 1:
-                            handleViewOfferingCourses(newSocket);
-                            break;
-                        case 2:
-                            handleAddCourse(newSocket, username);
-                            break;
-                        case 3:
-                            handleRemoveCourse(newSocket);
-                            break;
-                        case 4:
-                            handleUpdateCourseDetails(newSocket);
-                            break;
-                        case 5:
-                            handleChangeFacultyPass(newSocket);
-                            break;
-                        case 6:
-                            printf("Faculty session ended.\n");
-                            close(newSocket);
-                            return 0;
-                        default:
-                            printf("Invalid choice received from the client.\n");
-                            // Handle invalid choice if needed
-                            break;
+                        switch (studentChoice) {
+                            case 1:
+                                sendCourseData(newSocket);
+                                break;
+                            case 2:
+                                handleEnrollNewCourse(newSocket);
+                                break;
+                            case 3:
+                                handleDropCourse(newSocket);
+                                break;
+                            case 4:
+                                handleViewEnrolledCourseDetails(newSocket);
+                                break;
+                            case 5:
+                                handleChangeStudentPass(newSocket);
+                                break;
+                            case 6:
+                                printf("Student session ended.\n");
+                                close(newSocket);
+                                return 0;
+                            default:
+                                printf("Invalid choice received from the client.\n");
+                                // Handle invalid choice if needed
+                                break;
+                        }
+                        if(studentChoice == 6)
+                                break;
                     }
+                }   
                 }
-            }
-
-            // Below is the code to handle the students -> 
-            if (role == 3) {
-
-                char studentMenu[] = "\n----------------------------- Welcome to Student Menu ------------------------------\n"
-                                        "                             1. View All Courses\n"
-                                        "                             2. Enroll in a New Course\n"
-                                        "                             3. Drop a Course\n"
-                                        "                             4. View Enrolled Course Details\n"
-                                        "                             5. Change Password\n"
-                                        "                             6. Logout and Exit\n"
-                                        "Enter your choice: ";
-                send(newSocket, studentMenu, sizeof(studentMenu), 0);
-
-                char choiceStr[10];
-                ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
-
-                if (bytesReceived <= 0) {
-                    printf("Client disconnected or error while receiving choice.\n");
-                    // Handle disconnection or error if needed
-                } else {
-                    // Convert the received choice to an integer
-                    int studentChoice = atoi(choiceStr);
-
-                    switch (studentChoice) {
-                        case 1:
-                            sendCourseData(newSocket);
-                            break;
-                        case 2:
-                            handleEnrollNewCourse(newSocket);
-                            break;
-                        case 3:
-                            handleDropCourse(newSocket);
-                            break;
-                        case 4:
-                            handleViewEnrolledCourseDetails(newSocket);
-                            break;
-                        case 5:
-                            handleChangeStudentPass(newSocket);
-                            break;
-                        case 6:
-                            printf("Student session ended.\n");
-                            close(newSocket);
-                            return 0;
-                        default:
-                            printf("Invalid choice received from the client.\n");
-                            // Handle invalid choice if needed
-                            break;
-                    }
-                }
-            }
         } else {
             printf("Authentication failed. Invalid username or password.\n");
             // Inform the client about authentication failure

@@ -26,7 +26,7 @@ Step 1: Clone the repository:
 Step 2: Compile and Run the server program
     - Compile
     ```
-        gcc -o server server.c
+        cc -o server server.c
     ```
     - Run
     ```
@@ -36,7 +36,7 @@ Step 2: Compile and Run the server program
 Step 2: Compile and Run the client program
     - Compile
     ```
-        gcc -o client client.c
+        cc -o client client.c
     ```
     - Run
     ```
@@ -48,12 +48,12 @@ Step 3: Initial Configuration
 
 - Admin Account:  
     - Login ID: `admin`
-    - Password: `1234`
+    - Password: `admin`
 - Faculty Account: 
-    - Login ID: `faculty`
+    - Login ID: `PF1`
     - Password: `1234`
 - Student Account:  
-    - Login ID: `student`
+    - Login ID: `MT1`
     - Password: `1234`
 - Please ensure that you change your password after the initial login to secure your account.
 

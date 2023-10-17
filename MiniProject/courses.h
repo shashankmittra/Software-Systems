@@ -38,6 +38,38 @@ void readFacultyCourses() {
     printf("Total records read: %d\n", recordCount);
 }
 
+int countCoursesForStudent(int studentId) {
+    // Open the faculty course data file for reading
+    int facultyDataFile = open("facultycourse.txt", O_RDONLY);
+    if (facultyDataFile == -1) {
+        perror("Error opening faculty course data file");
+        return -1;
+    }
+
+    int courseCount = 0;
+
+    // Initialize a FacultyCourse structure
+    FacultyCourse facultyCourse;
+
+    // Read and count courses for the student
+    while (read(facultyDataFile, &facultyCourse, sizeof(FacultyCourse)) == sizeof(FacultyCourse)) {
+        if (facultyCourse.faculty_id == studentId) {
+            // Count the courses associated with this student
+            for (int i = 0; i < MAX_COURSES_PER_STUDENT; i++) {
+                if (facultyCourse.courses[i].courseId != -1) {
+                    courseCount++;
+                } else {
+                    break;
+                }
+            }
+        }
+    }
+
+    // Close the file
+    close(facultyDataFile);
+
+    return courseCount;
+}
 
 void addFacultyCourses(Course newCourse, char str[]) {
     // Extract the faculty_id from the entered username
@@ -117,40 +149,6 @@ void addFacultyCourses(Course newCourse, char str[]) {
     close(facultyDataFile);
     readFacultyCourses(); // Make sure to read and display the updated data
 }
-
-int countCoursesForStudent(int studentId) {
-    // Open the faculty course data file for reading
-    int facultyDataFile = open("facultycourse.txt", O_RDONLY);
-    if (facultyDataFile == -1) {
-        perror("Error opening faculty course data file");
-        return -1;
-    }
-
-    int courseCount = 0;
-
-    // Initialize a FacultyCourse structure
-    FacultyCourse facultyCourse;
-
-    // Read and count courses for the student
-    while (read(facultyDataFile, &facultyCourse, sizeof(FacultyCourse)) == sizeof(FacultyCourse)) {
-        if (facultyCourse.faculty_id == studentId) {
-            // Count the courses associated with this student
-            for (int i = 0; i < MAX_COURSES_PER_STUDENT; i++) {
-                if (facultyCourse.courses[i].courseId != -1) {
-                    courseCount++;
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-
-    // Close the file
-    close(facultyDataFile);
-
-    return courseCount;
-}
-
 
 //Function to add a Course with auto-incrementing course_id
 
@@ -266,8 +264,14 @@ void addCourse(Course newCourse, char username[]) {
 }
 
 // Fucnction to modify the student details from the given stud_id by the client - 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 void updateCourseDetails(int clientSocket, int courseId) {
-    FILE *courseFile = fopen("courses.txt", "r+");
+    FILE* courseFile = fopen("courses.txt", "r+");
     if (courseFile == NULL) {
         perror("Error opening course data file");
         send(clientSocket, "Course not found", sizeof("Course not found"), 0);
@@ -278,7 +282,20 @@ void updateCourseDetails(int clientSocket, int courseId) {
     Course tempCourse;
     Course course;
 
-    FILE *tempFile = tmpfile();  // Create a temporary file for storing modified data
+    int courseFileDescriptor = fileno(courseFile); // Get the file descriptor
+
+    struct flock lock;
+    lock.l_type = F_WRLCK;  // Set a write lock
+    lock.l_start = courseId * sizeof(Course); // Lock the specific record
+    lock.l_whence = SEEK_SET;
+    lock.l_len = sizeof(Course);
+
+    if (fcntl(courseFileDescriptor, F_SETLKW, &lock) == -1) {
+        perror("Error setting file lock");
+        fclose(courseFile);
+        send(clientSocket, "Error locking course record", sizeof("Error locking course record"), 0);
+        return;
+    }
 
     // Read and process each line in the file
     while (fscanf(courseFile, "%49[^$]$%19[^$]$%d$%d$%d$%d\n",
@@ -296,31 +313,22 @@ void updateCourseDetails(int clientSocket, int courseId) {
                 break;
             }
         }
-        // Write the course data to the temporary file
-        fprintf(tempFile, "%s$%s$%d$%d$%d$%d\n",
-                course.courseName, course.department, course.totalseats,
-                course.credits, course.availableSeats, course.courseId);
     }
 
-    // Close the original course data file
-    fclose(courseFile);
+    // Move the file pointer back to the beginning of the record
+    fseek(courseFile, courseId * sizeof(Course), SEEK_SET);
 
-    // Copy the contents of the temporary file back to the original file
-    courseFile = fopen("courses.txt", "w");
-    if (courseFile == NULL) {
-        perror("Error opening course data file");
-        send(clientSocket, "Error updating course details", sizeof("Error updating course details"), 0);
-        fclose(tempFile);
-        return;
+    // Write the updated course data back to the file
+    fprintf(courseFile, "%s$%s$%d$%d$%d$%d\n",
+            course.courseName, course.department, course.totalseats,
+            course.credits, course.availableSeats, course.courseId);
+
+    // Release the lock
+    lock.l_type = F_UNLCK;
+    if (fcntl(courseFileDescriptor, F_SETLK, &lock) == -1) {
+        perror("Error releasing file lock");
     }
 
-    rewind(tempFile);
-    int c;
-    while ((c = fgetc(tempFile)) != EOF) {
-        fputc(c, courseFile);
-    }
-
-    fclose(tempFile);
     fclose(courseFile);
 
     // Send the updated course details or a not found message to the client
@@ -330,6 +338,7 @@ void updateCourseDetails(int clientSocket, int courseId) {
         send(clientSocket, "Course not found", sizeof("Course not found"), 0);
     }
 }
+
 
 void sendCourseDetails(int serverSocket, char str[]) {
     char* remaining;
@@ -453,7 +462,7 @@ void sendCourseData(int clientSocket) {
 
 
 
-void addStudentCourses(Course newCourse, int clientSocket, char str[]){
+void addStudentCourses(Course newCourse, int clientSocket, char str[]) {
     char* remaining;
     int intValue;
 
@@ -480,29 +489,49 @@ void addStudentCourses(Course newCourse, int clientSocket, char str[]){
     newFC.courses[0] = newCourse; // Add the new course to the first slot
 
     // Open the faculty course data file for reading and writing, with appending
-    int facultyDataFile = open("studentcourse.txt", O_RDWR | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
-    if (facultyDataFile == -1) {
-        perror("Error opening studentcourse course data file");
+    int studentDataFile = open("studentcourse.txt", O_RDWR | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
+    if (studentDataFile == -1) {
+        perror("Error opening student course data file");
         return;
     }
 
     // Set the file position at the end of the file and check if it's successful
-    if (lseek(facultyDataFile, 0, SEEK_END) == -1) {
+    if (lseek(studentDataFile, 0, SEEK_END) == -1) {
         perror("Error setting file position");
-        close(facultyDataFile);
+        close(studentDataFile);
+        return;
+    }
+
+    // Implement record-level locking using fcntl
+    struct flock lock;
+    memset(&lock, 0, sizeof(lock));
+    lock.l_type = F_WRLCK; // Set a write lock
+    lock.l_whence = SEEK_END;
+    lock.l_start = 0;
+    lock.l_len = sizeof(StudentCourse);
+
+    if (fcntl(studentDataFile, F_SETLKW, &lock) == -1) {
+        perror("Error setting file lock");
+        close(studentDataFile);
         return;
     }
 
     // Write the new StudentCourse structure to the file
-    ssize_t bytesWritten = write(facultyDataFile, &newFC, sizeof(StudentCourse));
+    ssize_t bytesWritten = write(studentDataFile, &newFC, sizeof(StudentCourse));
     if (bytesWritten != sizeof(StudentCourse)) {
         perror("Error writing data");
     } else {
-        printf("Faculty course data added successfully.\n");
+        printf("Student course data added successfully.\n");
+    }
+
+    // Release the lock
+    lock.l_type = F_UNLCK;
+    if (fcntl(studentDataFile, F_SETLK, &lock) == -1) {
+        perror("Error releasing file lock");
     }
 
     // Close the file
-    close(facultyDataFile);
+    close(studentDataFile);
 }
 
 void enrollCourse(int courseId, int clientSocket, char username[]) {
@@ -513,6 +542,17 @@ void enrollCourse(int courseId, int clientSocket, char username[]) {
     }
 
     Course tempCourse; // Temporary variable to store the course structure
+
+    // Implement record-level locking using fcntl
+    struct flock lock;
+    memset(&lock, 0, sizeof(lock));
+    lock.l_type = F_WRLCK; // Set a write lock
+    lock.l_whence = SEEK_SET;
+
+    while (fcntl(coursesFile, F_SETLKW, &lock) == -1) {
+        // Wait until the file lock is available
+        usleep(1000); // Sleep for a short time before retrying
+    }
 
     // Read and write each line of the file
     char line[256];
@@ -538,18 +578,18 @@ void enrollCourse(int courseId, int clientSocket, char username[]) {
         }
     }
 
-    // Close and reopen the courses.txt file for writing
-    close(coursesFile);
-    coursesFile = open("courses.txt", O_WRONLY | O_TRUNC);
-    if (coursesFile == -1) {
-        perror("Error reopening courses data file");
-        return;
-    }
-
     if (found) {
         if (tempCourse.availableSeats > 0) {
             // Reduce the available seats by 1
             tempCourse.availableSeats--;
+
+            // Close and reopen the courses.txt file for writing
+            close(coursesFile);
+            coursesFile = open("courses.txt", O_WRONLY | O_TRUNC);
+            if (coursesFile == -1) {
+                perror("Error reopening courses data file");
+                return;
+            }
 
             // Write the updated course structure back to the file
             dprintf(coursesFile, "%s$%s$%d$%d$%d$%d\n",
@@ -560,6 +600,10 @@ void enrollCourse(int courseId, int clientSocket, char username[]) {
             // Close the courses.txt file
             close(coursesFile);
 
+            // Release the file lock
+            lock.l_type = F_UNLCK;
+            fcntl(coursesFile, F_SETLK, &lock);
+
             // Enroll the student in the course (implement this function)
             addStudentCourses(tempCourse, clientSocket, username);
 
@@ -567,11 +611,19 @@ void enrollCourse(int courseId, int clientSocket, char username[]) {
             const char* responseMessage = "Enrolled in the course successfully.";
             send(clientSocket, responseMessage, strlen(responseMessage), 0);
         } else {
+            // Release the file lock
+            lock.l_type = F_UNLCK;
+            fcntl(coursesFile, F_SETLK, &lock);
+
             // Send a response to the client that the course is full
             const char* responseMessage = "Course is full. Cannot enroll.";
             send(clientSocket, responseMessage, strlen(responseMessage), 0);
         }
     } else {
+        // Release the file lock
+        lock.l_type = F_UNLCK;
+        fcntl(coursesFile, F_SETLK, &lock);
+
         // Send a response to the client that the course was not found
         const char* responseMessage = "Course with courseId not found.";
         send(clientSocket, responseMessage, strlen(responseMessage), 0);

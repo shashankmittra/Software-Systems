@@ -807,10 +807,17 @@ int main() {
             // When user role == 3 Then the user is a student - 
             else if(atoi(userRole) == 3){
                 while(1){
+                    char studentMenu[] = "\n----------------------------- Welcome to Student Menu ------------------------------\n"
+                                        "                             1. View All Courses\n"
+                                        "                             2. Enroll in a New Course\n"
+                                        "                             3. Drop a Course\n"
+                                        "                             4. View Enrolled Course Details\n"
+                                        "                             5. Change Password\n"
+                                        "                             6. Logout and Exit\n"
+                                        "Enter your choice: ";
+                printf("Sending menu: %s\n", studentMenu);  
 
-                    memset(buffer, 0, sizeof(buffer));
-                    recv(clientSocket, buffer, sizeof(buffer), 0);
-                    printf("%s\n", buffer);  // Display the received menu
+
 
                     int studChoice;
                     scanf("%d", &studChoice);
