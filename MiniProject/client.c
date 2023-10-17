@@ -99,15 +99,15 @@ void addStudent(int clientSocket) {
 void addFaculty(int clientSocket) {
     Faculty newfaculty;
     memset(&newfaculty, 0, sizeof(Faculty)); // Initialize the structure
-    printf("Enter student name: ");
+    printf("Enter faculty name: ");
     fgets(newfaculty.name, sizeof(newfaculty.name), stdin);
-    printf("Enter student department: ");
+    printf("Enter faculty department: ");
     fgets(newfaculty.department, sizeof(newfaculty.department), stdin);
-    printf("Enter student designation: ");
+    printf("Enter faculty designation: ");
     fgets(newfaculty.designation, sizeof(newfaculty.designation), stdin);
-    printf("Enter student email_id: ");
+    printf("Enter faculty email_id: ");
     fgets(newfaculty.email_id, sizeof(newfaculty.email_id), stdin);
-    printf("Enter student address: ");
+    printf("Enter faculty address: ");
     fgets(newfaculty.address, sizeof(newfaculty.address), stdin);
 
     // Remove the trailing newline characters
@@ -692,10 +692,21 @@ int main() {
                 // Collect student data from the client
                 while(1){
                     
-                    memset(buffer, 0, sizeof(buffer));
-                    recv(clientSocket, buffer, sizeof(buffer), 0);
-                    printf("%s\n", buffer);  // Display the received menu
+                    char adminMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
+                                            "                             1. Add Student\n"
+                                            "                             2. View Student Details\n"
+                                            "                             3. Add Faculty\n"
+                                            "                             4. View Faculty Details\n"
+                                            "                             5. Modify Student Details\n"
+                                            "                             6. Modify Faculty Details\n"
+                                            "                             7. Logout and Exit\n"
+                                            "Enter your choice: ";
 
+                    // memset(buffer, 0, sizeof(buffer));
+                    // recv(clientSocket, buffer, sizeof(buffer), 0);
+                    // printf("%s\n", buffer);  // Display the received menu
+
+                    printf("Sending menu: %s\n", adminMenu); 
 
                     int adminChoice;
                     scanf("%d", &adminChoice);
@@ -752,9 +763,19 @@ int main() {
             else if(atoi(userRole) == 2){
                 while(1){
                     
-                    memset(buffer, 0, sizeof(buffer));
-                    recv(clientSocket, buffer, sizeof(buffer), 0);
-                    printf("%s\n", buffer);  // Display the received menu
+                    char facultyMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
+                                            "                             1. View Offering Course\n"
+                                            "                             2. Add new Course\n"
+                                            "                             3. Remove courses from the Catalog\n"
+                                            "                             4. Update Course Details\n"
+                                            "                             5. Change Password\n"
+                                            "                             6. Logout and Exit\n"
+                                            "Enter your choice: ";
+                    printf("Sending menu: %s\n", facultyMenu); 
+
+                    // memset(buffer, 0, sizeof(buffer));
+                    // recv(clientSocket, buffer, sizeof(buffer), 0);
+                    // printf("%s\n", buffer);  // Display the received menu
 
                     int facultyChoice;
                     scanf("%d", &facultyChoice);

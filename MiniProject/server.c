@@ -90,22 +90,11 @@ int main() {
                 send(newSocket, "Authenticated", sizeof("Authenticated"), 0);
 
                 // If the user is an Admin (role == 1), display the menu
-                while(1){
                     if (role == 1)
                     {
-
-                        char adminMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
-                                            "                             1. Add Student\n"
-                                            "                             2. View Student Details\n"
-                                            "                             3. Add Faculty\n"
-                                            "                             4. View Faculty Details\n"
-                                            "                             5. Modify Student Details\n"
-                                            "                             6. Modify Faculty Details\n"
-                                            "                             7. Logout and Exit\n"
-                                            "Enter your choice: ";
                         
                     
-                        send(newSocket, adminMenu, sizeof(adminMenu), 0);
+                        //send(newSocket, adminMenu, sizeof(adminMenu), 0);
 
                         char choiceStr[10];
                         ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
@@ -158,16 +147,7 @@ int main() {
                 // Below is the code to handle faculty menu options
                 if (role == 2) {
 
-                    char facultyMenu[] = "\n----------------------------- Welcome to Faculty Menu ------------------------------\n"
-                                            "                             1. View Offering Course\n"
-                                            "                             2. Add new Course\n"
-                                            "                             3. Remove courses from the Catalog\n"
-                                            "                             4. Update Course Details\n"
-                                            "                             5. Change Password\n"
-                                            "                             6. Logout and Exit\n"
-                                            "Enter your choice: ";
-
-                    send(newSocket, facultyMenu, sizeof(facultyMenu), 0);
+                    //send(newSocket, facultyMenu, sizeof(facultyMenu), 0);
 
                     char choiceStr[10];
                     ssize_t bytesReceived = recv(newSocket, choiceStr, sizeof(choiceStr), 0);
@@ -251,7 +231,6 @@ int main() {
                                 break;
                     }
                 }   
-                }
         } else {
             printf("Authentication failed. Invalid username or password.\n");
             // Inform the client about authentication failure

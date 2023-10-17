@@ -75,7 +75,7 @@ void addFaculty(Faculty newFaculty) {
     }
 
     // Create the login ID by appending "MT" to the stud_id
-    snprintf(newFaculty.login_id, sizeof(newFaculty.login_id), "MT%d", newFaculty.faculty_id);
+    snprintf(newFaculty.login_id, sizeof(newFaculty.login_id), "PF%d", newFaculty.faculty_id);
 
     // Generate a temporary password (you can implement your own logic)
     snprintf(newFaculty.password, sizeof(newFaculty.password), "1234");
